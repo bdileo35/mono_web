@@ -2,15 +2,14 @@
   "name": "qring_workspacebak",
   "version": "1.0.0",
   "main": "index.js",
-"scripts": {
-"prisma:init": "prisma init"
-},
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "scripts": {
+    "dev": "npx turbo run dev",
+    "prisma:init": "prisma init",
+    "seed": "tsx prisma/seed.ts"
+  },
   "devDependencies": {
     "prisma": "^6.8.1",
+    "tsx": "^4.19.4",
     "turbo": "^2.5.3"
   },
   "dependencies": {

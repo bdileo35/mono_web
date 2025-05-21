@@ -1,9 +1,17 @@
 # node_modules y build
 node_modules/
 .next/
-.expo/
 dist/
+build/
+.expo/
+.expo-shared/
+.expo/*
 *.log
+
+.env
+.env.*
+*.key
+*.pem
 
 # Firebase config local
 apps/web-admin/firebaseConfig.json
@@ -15,6 +23,14 @@ apps/web-admin/.next/server/*
 # Prisma DB local
 *.db
 *.db-journal
+coverage/
+
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+*.sw?
 
 # Mac / Windows cache
 .DS_Store
