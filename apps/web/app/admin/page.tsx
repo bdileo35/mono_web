@@ -1,88 +1,147 @@
-'use client'
+"use client";
+import { useEffect, useState } from "react";
 
-import React, { useState } from "react";
-import Head from "next/head";
-//import styles from "../styles/admin.module.css";
+// Ruta de la imagen de los 3 pasos (ajustar si la pones en public)
+const pasosImg = "/3steps_qring.png"; // Cambia el nombre si usas otro
+const logoImg = "/logo_qring.png"; // Cambia el nombre si usas otro
 
+export default function AccesoPage({ params }: { params: { idUnico: string } }) {
+  const [data, setData] = useState<any>(null);
+  const [timbreSel, setTimbreSel] = useState<any>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
-interface Timbre {
-id: number;
-nombre: string;
-usuario: string;
-}
+  useEffect(() => {
+    fetch(`/api/publico/${params.idUnico}`)
+      .then((res) => res.json())
+      .then(setData);
+  }, [params.idUnico]);
 
-export default function Dashboard() {
-const [timbres, setTimbres] = useState<Timbre[]>([]);
-const [nombre, setNombre] = useState("");
-const [usuario, setUsuario] = useState("");
-const [editando, setEditando] = useState<number | null>(null);
+  // Estilos QRing
+  const azul = "#1a4fa3";
+  const blanco = "#fff";
+  const gris = "#f4f6fa";
+  const borderRadius = 18;
+  const btnStyle = {
+    background: azul,
+    color: blanco,
+    border: "none",
+    borderRadius,
+    padding: "16px 32px",
+    fontSize: 20,
+    margin: "12px 0",
+    cursor: "pointer",
+    fontWeight: 600,
+    boxShadow: "0 2px 8px #0001",
+    transition: "background 0.2s",
+  };
 
-const handleAgregar = () => {
-if (!nombre || !usuario) return;
-setTimbres([...timbres, { id: Date.now(), nombre, usuario }]);
-setNombre("");
-setUsuario("");
-};
+  if (!data)
+    return (
+      <div style={{ minHeight: "100vh", background: gris, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <img src={logoImg} alt="QRing logo" style={{ width: 120, marginBottom: 24 }} />
+        <div style={{ fontSize: 22, color: azul, fontWeight: 600 }}>Cargando...</div>
+      </div>
+    );
 
-const handleEditar = (timbre: Timbre) => {
-setEditando(timbre.id);
-setNombre(timbre.nombre);
-setUsuario(timbre.usuario);
-};
+  // Wizard: Selección de timbre
+  if (!timbreSel) {
+    return (
+      <div style={{ minHeight: "100vh", background: gris, padding: 0, fontFamily: 'system-ui, sans-serif' }}>
+        <div style={{ maxWidth: 420, margin: "0 auto", background: blanco, borderRadius, boxShadow: "0 2px 16px #0002", padding: 32, marginTop: 32 }}>
+          <img src={logoImg} alt="QRing logo" style={{ width: 90, display: "block", margin: "0 auto 16px auto" }} />
+          <h1 style={{ color: azul, fontWeight: 800, fontSize: 28, marginBottom: 8 }}>Bienvenido a {data.calle} {data.numero}</h1>
+          <p style={{ color: "#333", fontSize: 18, marginBottom: 18 }}>Elija el timbre al que desea llamar:</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {data.timbres.map((t: any) => (
+              <button key={t.id} style={btnStyle} onClick={() => setTimbreSel(t)}>
+                Piso {t.piso} &bull; Dpto {t.dpto}
+              </button>
+            ))}
+          </div>
+          <button style={{ ...btnStyle, background: "#eee", color: azul, marginTop: 24 }} onClick={() => setShowHelp(true)}>
+            ¿Cómo funciona?
+          </button>
+        </div>
+        {/* Ayuda siempre visible */}
+        <div style={{ maxWidth: 420, margin: "32px auto 0 auto", background: blanco, borderRadius, boxShadow: "0 2px 8px #0001", padding: 18, textAlign: "center" }}>
+          <img src={pasosImg} alt="Pasos QRing" style={{ width: "100%", borderRadius: 12, marginBottom: 8 }} />
+          <div style={{ color: azul, fontWeight: 600, fontSize: 16 }}>¿Cómo funciona?</div>
+          <div style={{ color: "#444", fontSize: 15, marginTop: 4 }}>1. Escaneá el QR<br />2. Elegí el timbre<br />3. Contactá al residente</div>
+        </div>
+        {/* Modal de ayuda */}
+        {showHelp && (
+          <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "#0008", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setShowHelp(false)}>
+            <div style={{ background: blanco, borderRadius, padding: 24, maxWidth: 380, boxShadow: "0 2px 16px #0003" }} onClick={e => e.stopPropagation()}>
+              <img src={pasosImg} alt="Pasos QRing" style={{ width: "100%", borderRadius: 12, marginBottom: 8 }} />
+              <div style={{ color: azul, fontWeight: 600, fontSize: 16 }}>¿Cómo funciona?</div>
+              <div style={{ color: "#444", fontSize: 15, marginTop: 4 }}>1. Escaneá el QR<br />2. Elegí el timbre<br />3. Contactá al residente</div>
+              <button style={{ ...btnStyle, background: azul, color: blanco, marginTop: 18 }} onClick={() => setShowHelp(false)}>Cerrar</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
-const handleGuardar = () => {
-if (!nombre || !usuario || editando === null) return;
-setTimbres(
-timbres.map((t) =>
-t.id === editando ? { ...t, nombre, usuario } : t
-)
-);
-setEditando(null);
-setNombre("");
-setUsuario("");
-};
+  // Teléfono activo
+  const tel = timbreSel.usuario?.telefonos.find((t: any) => t.activo);
 
-const handleBorrar = (id: number) => {
-setTimbres(timbres.filter((t) => t.id !== id));
-};
-
-return (
-<>
-<Head>
-<title>Admin QRing</title>
-</Head>
-<main className={styles.main}>
-<h1>Panel de Administración QRing Pro</h1>
-<h2>Timbres</h2>
-<ul>
-{timbres.map((t) => (
-<li key={t.id} style={{ marginBottom: 10 }}>
-<b>{t.nombre}</b> - Usuario: {t.usuario}
-<button onClick={() => handleEditar(t)} style={{ marginLeft: 10 }}>Editar</button>
-<button onClick={() => handleBorrar(t.id)} style={{ marginLeft: 5, color: "red" }}>Borrar</button>
-</li>
-))}
-</ul>
-<input
-type="text"
-placeholder="Nombre del timbre"
-value={nombre}
-onChange={(e) => setNombre(e.target.value)}
-style={{ marginRight: 10 }}
-/>
-<input
-type="text"
-placeholder="Usuario asignado"
-value={usuario}
-onChange={(e) => setUsuario(e.target.value)}
-style={{ marginRight: 10 }}
-/>
-{editando ? (
-<button onClick={handleGuardar}>Guardar cambios</button>
-) : (
-<button onClick={handleAgregar}>Agregar timbre</button>
-)}
-</main>
-</>
-);
+  return (
+    <div style={{ minHeight: "100vh", background: gris, padding: 0, fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ maxWidth: 420, margin: "0 auto", background: blanco, borderRadius, boxShadow: "0 2px 16px #0002", padding: 32, marginTop: 32 }}>
+        <img src={logoImg} alt="QRing logo" style={{ width: 90, display: "block", margin: "0 auto 16px auto" }} />
+        <h2 style={{ color: azul, fontWeight: 800, fontSize: 24, marginBottom: 8 }}>
+          Timbre: Piso {timbreSel.piso} &bull; Dpto {timbreSel.dpto}
+        </h2>
+        <p style={{ color: "#333", fontSize: 17, marginBottom: 18 }}>Usted tiene la posibilidad de:</p>
+        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+          {tel?.whatsapp && (
+            <li style={{ marginBottom: 10 }}>
+              <a href={`https://wa.me/${tel.numero.replace("+", "")}`} target="_blank" rel="noopener noreferrer" style={{ ...btnStyle, display: "block", background: "#25d366", color: "#fff" }}>
+                📱 Enviar mensaje por WhatsApp
+              </a>
+            </li>
+          )}
+          {tel?.voz && (
+            <li style={{ marginBottom: 10 }}>
+              <a href={`tel:${tel.numero}`} style={{ ...btnStyle, display: "block", background: azul, color: blanco }}>
+                📞 Hacer llamada de voz
+              </a>
+            </li>
+          )}
+          {tel?.video && (
+            <li style={{ marginBottom: 10 }}>
+              <a href={`https://wa.me/${tel.numero.replace("+", "")}?text=Videollamada`} target="_blank" rel="noopener noreferrer" style={{ ...btnStyle, display: "block", background: "#1a4fa3", color: "#fff" }}>
+                🎥 Hacer videollamada (WhatsApp)
+              </a>
+            </li>
+          )}
+        </ul>
+        {!tel && <div style={{ color: "#c00", fontWeight: 600, marginBottom: 12 }}>No hay teléfono activo configurado para este timbre.</div>}
+        <button style={{ ...btnStyle, background: "#eee", color: azul, marginTop: 18 }} onClick={() => setTimbreSel(null)}>
+          Volver
+        </button>
+        <button style={{ ...btnStyle, background: "#eee", color: azul, marginTop: 8 }} onClick={() => setShowHelp(true)}>
+          ¿Cómo funciona?
+        </button>
+      </div>
+      {/* Ayuda siempre visible */}
+      <div style={{ maxWidth: 420, margin: "32px auto 0 auto", background: blanco, borderRadius, boxShadow: "0 2px 8px #0001", padding: 18, textAlign: "center" }}>
+        <img src={pasosImg} alt="Pasos QRing" style={{ width: "100%", borderRadius: 12, marginBottom: 8 }} />
+        <div style={{ color: azul, fontWeight: 600, fontSize: 16 }}>¿Cómo funciona?</div>
+        <div style={{ color: "#444", fontSize: 15, marginTop: 4 }}>1. Escaneá el QR<br />2. Elegí el timbre<br />3. Contactá al residente</div>
+      </div>
+      {/* Modal de ayuda */}
+      {showHelp && (
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "#0008", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setShowHelp(false)}>
+          <div style={{ background: blanco, borderRadius, padding: 24, maxWidth: 380, boxShadow: "0 2px 16px #0003" }} onClick={e => e.stopPropagation()}>
+            <img src={pasosImg} alt="Pasos QRing" style={{ width: "100%", borderRadius: 12, marginBottom: 8 }} />
+            <div style={{ color: azul, fontWeight: 600, fontSize: 16 }}>¿Cómo funciona?</div>
+            <div style={{ color: "#444", fontSize: 15, marginTop: 4 }}>1. Escaneá el QR<br />2. Elegí el timbre<br />3. Contactá al residente</div>
+            <button style={{ ...btnStyle, background: azul, color: blanco, marginTop: 18 }} onClick={() => setShowHelp(false)}>Cerrar</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

@@ -8,7 +8,9 @@
     "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
+    "@types/node": "^22.15.21",
     "prisma": "^6.8.1",
+    "ts-node": "^10.9.2",
     "tsx": "^4.19.4",
     "turbo": "^2.5.3"
   },

@@ -1,30 +1,64 @@
 // prisma/seed.ts
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Usuario } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const venta = await prisma.venta.create({
+  console.log('Iniciando seed...');
+  // Crea la dirección
+  const direccion = await prisma.direccion.create({
     data: {
-      fecha: new Date(),
-      monto: 9990,
-      idProducto: 1, // asegurate de tener un producto con ID 1
-      idUnico: 'qr_abc123',
-      cantidadTimbres: 10,
+      idUnico: 'qr_demo123',
+      calle: 'Av. Demo',
+      numero: '100',
+      ciudad: 'Ciudad Demo',
+      provincia: 'Provincia Demo',
+      pais: 'Argentina',
     },
   });
 
-  for (let i = 1; i <= 10; i++) {
+  // Crea usuarios y teléfonos
+  const usuarios: Usuario[] = [];
+  for (let i = 1; i <= 3; i++) {
+    const usuario = await prisma.usuario.create({
+      data: {
+        nombre: `Usuario ${i}`,
+        email: `usuario${i}@demo.com`,
+      },
+    });
+    // Crea teléfono para cada usuario
+    await prisma.telefono.create({
+      data: {
+        numero: `+54911111111${i}`,
+        activo: true,
+        whatsapp: true,
+        voz: i !== 2,
+        video: i === 3,
+        usuarioId: usuario.id,
+      },
+    });
+    usuarios.push(usuario);
+  }
+
+  // Crea timbres y los asocia a la dirección y a los usuarios
+  const timbres = [
+    { piso: '1', dpto: 'A', usuarioId: usuarios[0].id },
+    { piso: '1', dpto: 'B', usuarioId: usuarios[1].id },
+    { piso: '2', dpto: 'A', usuarioId: usuarios[2].id },
+  ];
+
+  for (const t of timbres) {
     await prisma.timbre.create({
       data: {
-        nombre: `Timbre ${i}`,
-        usuario: `usuario${i}@correo.com`,
-        idVenta: venta.id,
+        piso: t.piso,
+        dpto: t.dpto,
+        direccionId: direccion.id,
+        usuarioId: t.usuarioId,
       },
     });
   }
 
-  console.log('🌱 Datos de prueba insertados correctamente.');
+  console.log('🌱 Seed de demo insertado correctamente.');
 }
 
 main()
