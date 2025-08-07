@@ -1,50 +1,113 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "sqlite"
   url      = "file:./dev.db"
 }
 
+generator client {
+  provider = "prisma-client-js"
+  output   = "../apps/web/node_modules/.prisma/client"
+}
+
+model Venta {
+  id               String   @id @default(cuid())
+  idUnico          String   @unique
+  cantidadTimbres  Int
+  monto            Float
+  estado           String   @default("PAGADA") // PAGADA, PENDIENTE, CANCELADA
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  direccionId      String?
+  direccion        Direccion? @relation(fields: [direccionId], references: [id])
+}
+
 model Direccion {
-  id        Int      @id @default(autoincrement())
-  idUnico   String   @unique
-  calle     String
-  numero    String
-  ciudad    String
-  provincia String
-  pais      String
-  timbres   Timbre[]
+  id           String   @id @default(cuid())
+  idUnico      String   @unique
+  nombre       String   // Dirección completa (ej: "Tilcara 2308")
+  calle        String   // Calle (ej: "Tilcara")
+  numero       String   // Número (ej: "2308")
+  ciudad       String?  // Ciudad (ej: "CABA")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  timbres      Timbre[]
+  estructura   Estructura[]
+  ventas       Venta[]
+}
+
+model Estructura {
+  id           String   @id @default(cuid())
+  direccionId  String
+  direccion    Direccion @relation(fields: [direccionId], references: [id], onDelete: Cascade)
+  nombre       String   // Nombre del piso (ej: "1", "2", "PB")
+  dptos        String   // JSON string de departamentos (ej: '["A", "B", "C"]')
+  orden        Int      // Orden de visualización
+  createdAt    DateTime @default(now())
 }
 
 model Timbre {
-  id          Int        @id @default(autoincrement())
-  piso        String
-  dpto        String
-  direccion   Direccion  @relation(fields: [direccionId], references: [id])
-  direccionId Int
-  usuario     Usuario?   @relation(fields: [usuarioId], references: [id])
-  usuarioId   Int?
+  id               String   @id @default(cuid())
+  nombre           String   // Nombre completo (ej: "1A", "2B", "PBU")
+  piso             String   // Piso (ej: "1", "2", "PB")
+  dpto             String   // Departamento (ej: "A", "B", "U")
+  direccionId      String
+  direccion        Direccion @relation(fields: [direccionId], references: [id], onDelete: Cascade)
+  numero           String?  // Número de teléfono
+  metodo           String   @default("mensaje") // método de contacto: "mensaje", "llamada", "video"
+  estado           String   @default("activo") // estado del timbre: "activo", "dnd"
+  esPropio         Boolean  @default(false) // si es propio del admin
+  estadoAsignacion String   @default("libre") // libre, asignado, configurado, solicitado
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  usuarios         UsuarioTimbre[]
 }
 
 model Usuario {
-  id        Int      @id @default(autoincrement())
-  nombre    String
-  email     String   @unique
-  telefonos Telefono[]
-  timbres   Timbre[]
+  id           String   @id @default(cuid())
+  nombre       String
+  email        String?  @unique
+  telefono     String?
+  rol          Rol      // 'ADMIN' o 'USUARIO'
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  timbres      UsuarioTimbre[]
 }
 
-model Telefono {
-  id        Int      @id @default(autoincrement())
-  numero    String
-  activo    Boolean  @default(false)
-  whatsapp  Boolean  @default(false)
-  voz       Boolean  @default(false)
-  video     Boolean  @default(false)
-  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
-  usuarioId Int
+model UsuarioTimbre {
+  id         String   @id @default(cuid())
+  usuarioId  String
+  timbreId   String
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  timbre     Timbre   @relation(fields: [timbreId], references: [id], onDelete: Cascade)
+  metodo     MetodoContacto // 'WHATSAPP', 'LLAMADA', 'VIDEO'
+  estado     EstadoTelefono // 'ACTIVO', 'DND', 'DESACTIVADO'
+  createdAt  DateTime @default(now())
+}
+
+// Tabla para configuración global del sistema
+model Configuracion {
+  id        String   @id @default(cuid())
+  clave     String   @unique // ej: "precioPorTimbre"
+  valor     String   // Valor como string (se puede convertir según necesidad)
+  descripcion String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Rol {
+  ADMIN
+  USUARIO
+}
+
+enum MetodoContacto {
+  WHATSAPP
+  LLAMADA
+  VIDEO
+}
+
+enum EstadoTelefono {
+  ACTIVO
+  DND
+  DESACTIVADO
 }
 
 
