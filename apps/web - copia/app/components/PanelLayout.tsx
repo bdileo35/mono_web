@@ -42,150 +42,153 @@ export default function PanelLayout({
   sidebarWidth = 60,
   containerWidth = 1400
 }: PanelLayoutProps) {
+  const renderContent = () => {
+    return children;
+  };
+
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      background: "#f4f6fa", 
-      display: "flex", 
-      flexDirection: "column", 
-      alignItems: "flex-start", 
-      justifyContent: "flex-start",
-      padding: "20px 20px 20px 40px"
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      backgroundColor: '#f5f5f5',
+      fontFamily: 'Arial, sans-serif'
     }}>
+      {/* Sidebar */}
+      {showSidebar && (
+        <div style={{
+          width: sidebarWidth || '60px',
+          backgroundColor: '#fff',
+          borderRight: '1px solid #e0e0e0',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          paddingTop: '20px',
+          boxShadow: '2px 0 4px rgba(0,0,0,0.1)'
+        }}>
+          {sections.map((section, index) => (
+            <button
+              key={section.key}
+              onClick={() => onSectionChange(section.key)}
+              style={{
+                width: '40px',
+                height: '40px',
+                marginBottom: '10px',
+                border: 'none',
+                borderRadius: '8px',
+                backgroundColor: currentSection === section.key ? '#1a4fa3' : 'transparent',
+                color: currentSection === section.key ? '#fff' : '#666',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                if (currentSection !== section.key) {
+                  e.currentTarget.style.backgroundColor = '#f0f0f0';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (currentSection !== section.key) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
+            >
+              <section.icon size={18} />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Main Content */}
       <div style={{
-        width: containerWidth,
-        height: 'calc(100vh - 120px)',
-        maxWidth: '95vw',
-        background: "#fff",
-        borderRadius: 0,
-        boxShadow: "0 2px 12px #0003",
-        padding: 0,
-        margin: '0',
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "stretch",
-        justifyContent: "flex-start",
-        border: '1px solid #d0d7de',
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        {/* Sidebar con menú */}
-        {showSidebar && (
-          <div style={{
-            width: sidebarWidth,
-            background: "#f8faff",
-            borderRight: "1px solid #d0d7de",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            borderTopLeftRadius: 0,
-            borderBottomLeftRadius: 0,
-            borderTopRightRadius: 0,
-            borderBottomRightRadius: 0,
-            gap: 16,
-            paddingTop: 20,
-            flexShrink: 0
-          }}>
-            {sections.map((item) => {
-              const Icon = item.icon;
-              const selected = currentSection === item.key;
-              return (
-                <button
-                  key={item.key}
-                  onClick={() => onSectionChange(item.key)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 48,
-                    height: 48,
-                    background: selected ? "#eaf4ff" : "none",
-                    color: selected ? "#1a4fa3" : "#222",
-                    border: "none",
-                    borderRadius: 12,
-                    fontWeight: selected ? 700 : 500,
-                    fontSize: 17,
-                    cursor: "pointer",
-                    transition: "all 0.2s"
-                  }}
-                  title={item.label}
-                >
-                  <Icon size={28} style={{ minWidth: 28 }} />
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Contenido principal */}
+        {/* Header */}
         <div style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          borderTopRightRadius: 0,
-          borderBottomRightRadius: 0,
-          borderTopLeftRadius: 0,
-          borderBottomLeftRadius: 0,
-          height: '100%',
-          overflow: 'hidden'
+          backgroundColor: '#fff',
+          borderBottom: '1px solid #e0e0e0',
+          padding: '15px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
-          {/* Header con título e iconos */}
           <div style={{
-            background: '#f8faff',
-            borderBottom: '1px solid #d0d7de',
-            padding: '12px 24px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            flexShrink: 0,
-            boxShadow: '0 1px 3px #0001'
+            gap: '10px'
           }}>
-            <h2 style={{ 
-              color: "#1a4fa3", 
-              fontWeight: 900, 
-              fontSize: 24, 
-              margin: 0, 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 10 
-            }}>
-              {headerIcon && headerIcon}
-              {title}
-            </h2>
-          </div>
-
-          {/* Contenido central - ocupa todo el espacio disponible */}
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'auto',
-            minHeight: 0
-          }}>
-            {children}
-          </div>
-
-          {/* Footer dinámico */}
-          <div style={{
-            background: '#f8faff',
-            borderTop: '1px solid #d0d7de',
-            padding: '8px 24px',
-            color: "#666",
-            fontSize: 12,
-            textAlign: "center",
-            flexShrink: 0,
-            minHeight: 40,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 -1px 3px #0001'
-          }}>
-            {footerContent ? footerContent : (
-              <span>{footerDescription || "Panel de administración"}</span>
+            {headerIcon && (
+              <span style={{ fontSize: '24px' }}>{headerIcon}</span>
             )}
+            <h1 style={{
+              margin: 0,
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#1a4fa3'
+            }}>
+              {title}
+            </h1>
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: '#666',
+            fontWeight: '500'
+          }}>
+            {new Date().toLocaleTimeString('es-ES', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })} - {new Date().toLocaleDateString('es-ES')}
           </div>
         </div>
+
+        {/* Content Area */}
+        <div style={{
+          flex: 1,
+          padding: '10px',
+          overflow: 'auto',
+          backgroundColor: '#f5f5f5'
+        }}>
+          <div style={{
+            maxWidth: containerWidth || '100%',
+            margin: '0 auto',
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            height: 'calc(100vh - 200px)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%'
+          }}>
+            {renderContent()}
+          </div>
+        </div>
+
+        {/* Footer */}
+        {footerContent && (
+          <div style={{
+            backgroundColor: '#fff',
+            borderTop: '1px solid #e0e0e0',
+            padding: '15px 20px',
+            textAlign: 'center',
+            color: '#666',
+            fontSize: '14px',
+            boxShadow: '0 -2px 4px rgba(0,0,0,0.1)'
+          }}>
+            {footerContent}
+            {footerDescription && (
+              <div style={{ marginTop: '5px', fontSize: '12px', color: '#999' }}>
+                {footerDescription}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

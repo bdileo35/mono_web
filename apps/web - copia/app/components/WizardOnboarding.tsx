@@ -106,14 +106,23 @@ export default function WizardOnboarding() {
 
   // --- EFECTOS DE CARGA, GUARDADO Y GENERACIÓN ---
 
-  // 1. Cargar desde LocalStorage (solo al montar el componente)
+  // 1. Cargar desde LocalStorage y Base de Datos (solo al montar el componente)
   useEffect(() => {
+    const cargarDatos = async () => {
     const datosGuardados = localStorage.getItem('wizardData');
     console.log('Datos guardados encontrados:', datosGuardados);
+      
+      // 🔧 CRÍTICO: Obtener IDU de múltiples fuentes
+      const ventaIdUnico = localStorage.getItem('ventaIdUnico');
+      const urlParams = new URLSearchParams(window.location.search);
+      const idUnicoFromUrl = urlParams.get('idUnico');
+      const idUnicoToUse = ventaIdUnico || idUnicoFromUrl;
+      
+      console.log('🔍 IDU encontrado:', { ventaIdUnico, idUnicoFromUrl, idUnicoToUse });
     
     if (datosGuardados) {
       const data = JSON.parse(datosGuardados);
-      console.log('Cargando datos:', data);
+        console.log('Cargando datos desde localStorage:', data);
       setPaso(data.paso || 1);
       setCalle(data.calle || "");
       setNumero(data.numero || "");
@@ -122,13 +131,63 @@ export default function WizardOnboarding() {
       setCantPisos(data.cantPisos || 1);
       setDptosPorPiso(data.dptosPorPiso || 1);
       setEstructura(data.estructura || []);
-      setIdUnico(data.idUnico || null);
+        setIdUnico(data.idUnico || idUnicoToUse);
       setTimbres(data.timbres || []);
     } else {
       console.log('No hay datos guardados, usando valores por defecto');
-    }
+        // 🔧 CRÍTICO: Establecer IDU si no hay datos guardados
+        if (idUnicoToUse) {
+          setIdUnico(idUnicoToUse);
+          console.log('✅ IDU establecido desde URL/localStorage:', idUnicoToUse);
+        }
+      }
+      
+      // 🔧 CRÍTICO: Cargar números configurados desde la BD
+      if (idUnicoToUse) {
+        try {
+          console.log('🔄 Cargando números configurados desde BD para:', idUnicoToUse);
+          const response = await fetch(`/api/publico/${idUnicoToUse}`);
+          const result = await response.json();
+          
+          if (result.success && result.data?.timbres) {
+            console.log('✅ Números cargados desde BD:', result.data.timbres);
+            
+            // Actualizar timbres con números de la BD
+            setTimbres(prevTimbres => {
+              const timbresActualizados = prevTimbres.map(timbre => {
+                const timbreBD = result.data.timbres.find((t: any) => 
+                  t.nombre === timbre.id || 
+                  `${t.piso}${t.dpto}` === timbre.id
+                );
+                
+                if (timbreBD && timbreBD.numero) {
+                  console.log(`✅ Actualizando timbre ${timbre.id} con número: ${timbreBD.numero}`);
+                  return {
+                    ...timbre,
+                    numero: timbreBD.numero,
+                    metodo: timbreBD.metodo || timbre.metodo,
+                    estadoAsignacion: 'configurado'
+                  };
+                }
+                return timbre;
+              });
+              
+              console.log('✅ Timbres actualizados con números de BD:', timbresActualizados);
+              return timbresActualizados;
+            });
+          } else {
+            console.log('⚠️ No se encontraron números configurados en BD');
+          }
+        } catch (error) {
+          console.error('❌ Error cargando números desde BD:', error);
+        }
+      }
+      
     // Marcamos que la carga inicial ha terminado
     isInitialMount.current = false;
+    };
+    
+    cargarDatos();
   }, []); // El array vacío asegura que se ejecute solo una vez
 
   // 2. Sincronizar 'timbres' con 'estructura'
@@ -259,19 +318,28 @@ export default function WizardOnboarding() {
     try {
       console.log("Guardando estructura en la base de datos...");
       
+      // 🔧 CRÍTICO: Usar el idUnico existente, NO generar uno nuevo
+      if (!idUnico) {
+        alert("Error: No se encontró el ID único del edificio");
+        return;
+      }
+      
+      console.log("🔍 Usando idUnico existente:", idUnico);
+      
     const direccion = { calle, numero };
     const estructuraFinal = estructura.map(piso => ({
       ...piso,
       dptos: piso.dptos.filter(d => d.trim() !== '')
     }));
     
-      // Hacer POST real al endpoint
+      // 🔧 CRÍTICO: Enviar el idUnico existente al endpoint
       const response = await fetch('/api/admin/estructura', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          idUnico, // 🔧 CRÍTICO: Incluir el idUnico existente
           direccion,
           estructura: estructuraFinal
         })
@@ -280,8 +348,9 @@ export default function WizardOnboarding() {
       const result = await response.json();
       
       if (result.success) {
-        console.log("Estructura guardada exitosamente:", result);
-        setIdUnico(result.direccion.idUnico);
+        console.log("✅ Estructura guardada exitosamente:", result);
+        // 🔧 CRÍTICO: NO cambiar el idUnico, mantener el original
+        console.log("✅ Manteniendo idUnico original:", idUnico);
         
         // Actualizar el estado local con el ID real
     setEstructura(estructuraFinal);

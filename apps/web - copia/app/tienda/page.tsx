@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function TiendaPage() {
@@ -20,6 +20,12 @@ export default function TiendaPage() {
 
   const handleComprar = async () => {
     setLoading(true);
+    
+    // 🔧 TEMPORAL: Limpiar localStorage para evitar conflictos
+    if (typeof window !== 'undefined') {
+      localStorage.clear();
+      console.log('🧹 localStorage limpiado antes de nueva compra');
+    }
     
     try {
       const idUnico = generarIdUnico();
@@ -54,8 +60,29 @@ export default function TiendaPage() {
     }
   };
 
-  const precioPorTimbre = 10;
+  const [precioPorTimbre, setPrecioPorTimbre] = useState(6900);
   const precioTotal = cantidadTimbres * precioPorTimbre;
+
+  // Cargar precio desde la base de datos
+  useEffect(() => {
+    const cargarPrecio = async () => {
+      try {
+        console.log('🔄 Cargando precio desde configuración...');
+        const response = await fetch('/api/admin/configuracion');
+        const data = await response.json();
+        
+        if (data.success && data.configuracion?.precioPorTimbre) {
+          console.log('✅ Precio cargado:', data.configuracion.precioPorTimbre);
+          setPrecioPorTimbre(data.configuracion.precioPorTimbre);
+        } else {
+          console.log('⚠️ Usando precio por defecto:', precioPorTimbre);
+        }
+      } catch (error) {
+        console.error('❌ Error cargando precio:', error);
+      }
+    };
+    cargarPrecio();
+  }, []);
 
   return (
     <div style={{ 
@@ -85,9 +112,10 @@ export default function TiendaPage() {
         </h1>
         
         <p style={{ 
-          color: '#666', 
+          color: '#333', 
           fontSize: 18, 
-          marginBottom: 32 
+          marginBottom: 32,
+          fontWeight: 500
         }}>
           Compra timbres para tu edificio
         </p>
@@ -170,8 +198,8 @@ export default function TiendaPage() {
               justifyContent: 'space-between',
               marginBottom: 8
             }}>
-              <span style={{ color: '#666' }}>Precio por timbre:</span>
-              <span style={{ fontWeight: 600 }}>${precioPorTimbre}</span>
+              <span style={{ color: '#333', fontWeight: 500 }}>Precio por timbre:</span>
+              <span style={{ color: '#1a4fa3', fontWeight: 700, fontSize: 18 }}>${precioPorTimbre}</span>
             </div>
             <div style={{
               display: 'flex',
@@ -208,9 +236,10 @@ export default function TiendaPage() {
         </button>
 
         <p style={{
-          color: '#999',
+          color: '#555',
           fontSize: 14,
-          marginTop: 16
+          marginTop: 16,
+          fontWeight: 400
         }}>
           Simulación de pago - Sin credenciales reales de MP
         </p>

@@ -5,60 +5,59 @@ const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
-    // Obtener todas las direcciones con sus timbres y estructura
-    const direcciones = await prisma.direccion.findMany({
+    console.log('🏢 Cargando edificios...');
+
+    const edificios = await prisma.direccion.findMany({
       include: {
-        timbres: true,
-        estructura: true
+        estructura: { orderBy: { orden: 'desc' } },
+        timbres: { orderBy: [{ piso: 'asc' }, { dpto: 'asc' }] }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: { createdAt: 'desc' }
     });
 
-    // Calcular estadísticas para cada edificio
-    const edificiosConStats = direcciones.map(direccion => {
-      const totalTimbres = direccion.timbres.length;
-      const timbresActivos = direccion.timbres.filter(t => t.estado === 'activo').length;
-      const timbresConfigurados = direccion.timbres.filter(t => t.estadoAsignacion === 'configurado').length;
-      
-      // Calcular total de departamentos desde la estructura
-      const totalDptos = direccion.estructura.reduce((total, piso) => {
-        try {
-          const dptos = JSON.parse(piso.dptos);
-          return total + dptos.length;
-        } catch {
-          return total;
-        }
-      }, 0);
-
-      return {
-        id: direccion.id,
-        idUnico: direccion.idUnico,
-        nombre: direccion.nombre,
-        calle: direccion.calle,
-        numero: direccion.numero,
-        ciudad: direccion.ciudad,
-        createdAt: direccion.createdAt,
-        stats: {
-          totalTimbres,
-          timbresActivos,
-          timbresConfigurados,
-          totalDptos,
-          cantPisos: direccion.estructura.length
-        }
-      };
-    });
+    const edificiosFormateados = edificios.map(edificio => ({
+      id: edificio.id,
+      idUnico: edificio.idUnico,
+      nombre: edificio.nombre,
+      calle: edificio.calle,
+      numero: edificio.numero,
+      ciudad: edificio.ciudad,
+      createdAt: edificio.createdAt,
+      stats: {
+        totalTimbres: edificio.timbres.length,
+        timbresActivos: edificio.timbres.filter(t => t.estado === 'activo').length,
+        timbresConfigurados: edificio.timbres.filter(t => t.numero).length,
+        totalDptos: edificio.estructura.reduce((total, piso) => total + JSON.parse(piso.dptos).length, 0),
+        cantPisos: edificio.estructura.length
+      },
+      estructura: edificio.estructura.map(piso => ({
+        id: piso.id,
+        nombre: piso.nombre,
+        dptos: JSON.parse(piso.dptos),
+        orden: piso.orden
+      })),
+      timbres: edificio.timbres.map(timbre => ({
+        id: timbre.id,
+        nombre: timbre.nombre,
+        piso: timbre.piso,
+        dpto: timbre.dpto,
+        numero: timbre.numero,
+        metodo: timbre.metodo,
+        estado: timbre.estado,
+        esPropio: timbre.esPropio,
+        estadoAsignacion: timbre.estadoAsignacion
+      }))
+    }));
 
     return NextResponse.json({
       success: true,
-      edificios: edificiosConStats
+      edificios: edificiosFormateados
     });
 
   } catch (error) {
-    console.error('Error obteniendo edificios:', error);
+    console.error('❌ Error cargando edificios:', error);
     return NextResponse.json(
-      { success: false, error: 'Error al obtener los edificios' },
+      { success: false, error: 'Error al cargar edificios' },
       { status: 500 }
     );
   }

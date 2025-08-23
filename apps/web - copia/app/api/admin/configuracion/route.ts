@@ -1,101 +1,139 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 
-// Simulación de configuración del sistema
-let configuracionSistema = {
-  precioPorTimbre: '10'
-};
+const prisma = new PrismaClient();
 
-// GET: obtener configuración
-export async function GET(request: NextRequest) {
+// GET: Obtener configuración actual
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const idUnico = searchParams.get('idUnico');
-
-    // Si se proporciona idUnico, obtener configuración específica
-    if (idUnico) {
-      // Aquí iría la lógica para obtener la configuración desde la base de datos
-      // Por ahora simulamos la respuesta
-      const configuracionSimulada = {
-        idUnico,
-        userAdmin: 'admin@edificio.com',
-        direccionCompleta: 'Av. Corrientes 1234, CABA',
-        fechaCreacion: new Date().toISOString(),
-        estado: 'ACTIVO'
-      };
-
-      return NextResponse.json({
-        success: true,
-        data: configuracionSimulada
-      });
-    }
-
-    // Si no se proporciona idUnico, obtener configuración general del sistema
-    return NextResponse.json({ 
-      success: true, 
-      configuracion: configuracionSistema 
+    // Buscar configuración existente
+    const configuraciones = await prisma.configuracion.findMany();
+    
+    // Convertir a objeto
+    const configObj: any = {};
+    configuraciones.forEach((item: any) => {
+      configObj[item.clave] = item.valor;
     });
+    
+    // Si no existe precioPorTimbre, crearlo con valor por defecto
+    if (!configObj.precioPorTimbre) {
+      await prisma.configuracion.create({
+        data: {
+          clave: 'precioPorTimbre',
+          valor: '6900', // Precio por timbre ($6,900)
+          descripcion: 'Precio por timbre en pesos'
+        }
+      });
+      configObj.precioPorTimbre = '6900';
+    }
+    
+    const precioPorTimbre = parseInt(configObj.precioPorTimbre) || 6900;
+    
+    return NextResponse.json({
+      success: true,
+      configuracion: {
+        precioPorTimbre: precioPorTimbre,
+        precioFormateado: `$${precioPorTimbre.toLocaleString()}`,
+        moneda: configObj.moneda || 'ARS',
+        descripcion: configObj.descripcion || 'QRing - Sistema de timbres inteligentes',
+        version: configObj.version || '1.0.0'
+      }
+    });
+    
   } catch (error) {
-    console.error('Error al obtener configuración:', error);
-    return NextResponse.json({ success: false, error: 'Error al obtener configuración' }, { status: 500 });
+    console.error('Error obteniendo configuración:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error al obtener configuración' },
+      { status: 500 }
+    );
   }
 }
 
-// POST: actualizar configuración
+// POST: Actualizar configuración
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { idUnico, userAdmin, password, direccionCompleta, clave, valor } = body;
-
-    // Si es configuración del sistema (precio por timbre)
-    if (clave && valor) {
-      configuracionSistema[clave as keyof typeof configuracionSistema] = valor;
-      return NextResponse.json({
-        success: true,
-        message: 'Configuración del sistema actualizada'
-      });
-    }
-
-    // Si es configuración de edificio
-    if (!idUnico || !userAdmin || !password || !direccionCompleta) {
+    const { precioPorTimbre, moneda, descripcion } = await request.json();
+    
+    // Validar precio
+    if (precioPorTimbre && (precioPorTimbre < 0 || precioPorTimbre > 1000000)) {
       return NextResponse.json(
-        { error: 'Todos los campos son requeridos' },
+        { success: false, error: 'Precio inválido' },
         { status: 400 }
       );
     }
-
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: 'La contraseña debe tener al menos 8 caracteres' },
-        { status: 400 }
+    
+    // Actualizar o crear configuración usando upsert
+    const configuraciones = [];
+    
+    if (precioPorTimbre !== undefined) {
+      configuraciones.push(
+        prisma.configuracion.upsert({
+          where: { clave: 'precioPorTimbre' },
+          update: { valor: precioPorTimbre.toString() },
+          create: {
+            clave: 'precioPorTimbre',
+            valor: precioPorTimbre.toString(),
+            descripcion: 'Precio por timbre en centavos'
+          }
+        })
       );
     }
-
-    // Aquí iría la lógica para guardar en la base de datos
-    // Por ahora simulamos el guardado
-    console.log('Guardando configuración:', {
-      idUnico,
-      userAdmin,
-      password: '***', // No logear la contraseña real
-      direccionCompleta,
-      fechaCreacion: new Date().toISOString()
+    
+    if (moneda !== undefined) {
+      configuraciones.push(
+        prisma.configuracion.upsert({
+          where: { clave: 'moneda' },
+          update: { valor: moneda },
+          create: {
+            clave: 'moneda',
+            valor: moneda,
+            descripcion: 'Moneda del sistema'
+          }
+        })
+      );
+    }
+    
+    if (descripcion !== undefined) {
+      configuraciones.push(
+        prisma.configuracion.upsert({
+          where: { clave: 'descripcion' },
+          update: { valor: descripcion },
+          create: {
+            clave: 'descripcion',
+            valor: descripcion,
+            descripcion: 'Descripción del sistema'
+          }
+        })
+      );
+    }
+    
+    await Promise.all(configuraciones);
+    
+    // Obtener configuración actualizada
+    const configActualizada = await prisma.configuracion.findMany();
+    const configObj: any = {};
+    configActualizada.forEach((item: any) => {
+      configObj[item.clave] = item.valor;
     });
-
-    // Simular respuesta exitosa
+    
+    const precioFinal = parseInt(configObj.precioPorTimbre) || 8900;
+    
     return NextResponse.json({
       success: true,
-      message: 'Configuración guardada exitosamente',
-      data: {
-        idUnico,
-        userAdmin,
-        direccionCompleta,
-        fechaCreacion: new Date().toISOString()
-      }
+      configuracion: {
+        precioPorTimbre: precioFinal,
+        precioFormateado: `$${(precioFinal / 100).toFixed(2)}`,
+        moneda: configObj.moneda || 'ARS',
+        descripcion: configObj.descripcion || 'QRing - Sistema de timbres inteligentes',
+        version: configObj.version || '1.0.0'
+      },
+      message: 'Configuración actualizada exitosamente'
     });
-
+    
   } catch (error) {
-    console.error('Error al guardar configuración:', error);
+    console.error('Error actualizando configuración:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { success: false, error: 'Error al actualizar configuración' },
       { status: 500 }
     );
   }

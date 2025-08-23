@@ -161,9 +161,9 @@ function SuperPanelContent() {
   const renderContent = () => {
     switch (section) {
       case 'dashboard':
-        return (
+  return (
           <div style={{ height: '100%', padding: '10px' }}>
-            <div style={{
+      <div style={{
               border: '1px solid #ddd', 
               borderRadius: '8px', 
               overflow: 'hidden',
@@ -229,7 +229,7 @@ function SuperPanelContent() {
               ].map((venta) => (
                 <div key={venta.id}>
                   {/* Main Row */}
-                  <div style={{
+              <div style={{
                     display: 'grid',
                     gridTemplateColumns: '50px 1fr 100px 100px 100px 120px',
                     borderBottom: '1px solid #eee',
@@ -243,7 +243,7 @@ function SuperPanelContent() {
                     <div style={{ padding: '12px', fontWeight: 'bold', color: '#333' }}>{venta.idUnico}</div>
                     <div style={{ padding: '12px', textAlign: 'center', color: '#1a4fa3', fontWeight: 700 }}>{venta.cantidadTimbres}</div>
                     <div style={{ padding: '12px', textAlign: 'center', color: '#388e3c', fontWeight: 700 }}>${venta.monto}</div>
-                    <div style={{
+                <div style={{
                       padding: '12px', 
                       textAlign: 'center',
                       color: '#fff',
@@ -256,11 +256,11 @@ function SuperPanelContent() {
                       {venta.estado === 'PAGADA' ? 'Pag.' : 'Pend.'}
                     </div>
                     <div style={{ padding: '12px', textAlign: 'center', color: '#666', fontSize: '12px' }}>{venta.fecha}</div>
-                  </div>
+                </div>
 
                   {/* Expanded Details */}
                   {expandedRows.has(venta.id) && venta.edificio && (
-                    <div style={{
+                <div style={{
                       backgroundColor: '#f8f9fa',
                       padding: '16px',
                       borderBottom: '1px solid #eee'
@@ -284,8 +284,8 @@ function SuperPanelContent() {
                             <span>Tot: {venta.edificio.timbres.length}</span>
                             <span>Config: {venta.edificio.timbresConfigurados}</span>
                             <span>Libres: {venta.edificio.timbres.length - venta.edificio.timbresConfigurados}</span>
-                            <button 
-                              style={{
+              <button
+                style={{
                                 background: '#1a4fa3',
                                 color: '#fff',
                                 border: 'none',
@@ -300,11 +300,11 @@ function SuperPanelContent() {
                               }}
                             >
                               +
-                            </button>
+              </button>
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Timbres Grid */}
                       <div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
@@ -534,12 +534,28 @@ function SuperPanelContent() {
                   );
                 }
                 if (column.key === 'createdAt') {
-                  return <span style={{ color: '#666', fontSize: 12 }}>{new Date(row.createdAt).toLocaleDateString()}</span>;
+                  const fecha = new Date(row.createdAt);
+                  const fechaFormateada = fecha.toLocaleDateString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  });
+                  const horaFormateada = fecha.toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                  });
+                  return (
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#333', fontSize: 12, fontWeight: 600 }}>{fechaFormateada}</div>
+                      <div style={{ color: '#666', fontSize: 10 }}>{horaFormateada}</div>
+                    </div>
+                  );
                 }
                 return row[column.key];
               }}
             />
-                          </div>
+                </div>
         );
 
       case 'logs':
@@ -549,7 +565,7 @@ function SuperPanelContent() {
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-            height: '100%',
+          height: '100%',
             gap: 18
               }}>
                 <h2 style={{ color: "#1a4fa3", fontWeight: 900, fontSize: 32 }}>Logs</h2>

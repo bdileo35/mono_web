@@ -149,7 +149,7 @@ export default function DataGrid({
                     alignItems: 'center', 
                     justifyContent: column.align === 'center' ? 'center' : 
                                column.align === 'right' ? 'flex-end' : 'flex-start',
-                    color: '#222',
+                    color: '#333',
                     fontWeight: 500
                   }}
                 >

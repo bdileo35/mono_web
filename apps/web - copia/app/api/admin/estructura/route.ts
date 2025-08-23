@@ -26,7 +26,7 @@ function generateIdUnico(): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { direccion, estructura } = await request.json() as { direccion: Direccion; estructura: PisoConfig[] };
+    const { idUnico, direccion, estructura } = await request.json() as { idUnico?: string; direccion: Direccion; estructura: PisoConfig[] };
     
     // Validar datos requeridos
     if (!direccion?.calle || !direccion?.numero) {
@@ -43,20 +43,86 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generar ID único y asegurarse que no exista
-    let idUnico;
+    // 🔧 CRÍTICO: Usar el idUnico existente o generar uno nuevo
+    let idUnicoFinal = idUnico;
     let existingDireccion;
-    do {
-      idUnico = generateIdUnico();
+    
+    if (idUnicoFinal) {
+      console.log('🔍 Usando idUnico existente:', idUnicoFinal);
+      // Verificar si la dirección ya existe
       existingDireccion = await prisma.direccion.findUnique({
-        where: { idUnico }
+        where: { idUnico: idUnicoFinal }
       });
-    } while (existingDireccion);
+      
+      if (existingDireccion) {
+        console.log('✅ Dirección encontrada, actualizando estructura...');
+        // Actualizar la dirección existente
+        const direccionActualizada = await prisma.direccion.update({
+          where: { idUnico: idUnicoFinal },
+          data: {
+            nombre: `${direccion.calle} ${direccion.numero}`,
+            calle: direccion.calle,
+            numero: direccion.numero,
+            ciudad: direccion.ciudad || null,
+            // Eliminar estructura y timbres existentes
+            estructura: { deleteMany: {} },
+            timbres: { deleteMany: {} },
+            // Crear nueva estructura
+            estructura: {
+              create: estructura.map((piso, index) => ({
+                nombre: piso.nombre,
+                dptos: JSON.stringify(piso.dptos.filter(d => d.trim())),
+                orden: estructura.length - index
+              }))
+            },
+            // Crear nuevos timbres
+            timbres: {
+              create: estructura.flatMap(piso => 
+                piso.dptos
+                  .filter(dpto => dpto.trim())
+                  .map(dpto => ({
+                    nombre: `${piso.nombre}${dpto}`,
+                    piso: piso.nombre,
+                    dpto: dpto,
+                    numero: null, // Mantener campo para números
+                    metodo: 'mensaje',
+                    estado: 'activo',
+                    esPropio: false,
+                    estadoAsignacion: 'libre'
+                  }))
+              )
+            }
+          },
+          include: {
+            timbres: true,
+            estructura: {
+              orderBy: { orden: 'desc' }
+            }
+          }
+        });
+        
+        return NextResponse.json({
+          success: true,
+          direccion: direccionActualizada,
+        });
+      }
+    }
+    
+    // Si no hay idUnico o no existe la dirección, generar uno nuevo
+    if (!idUnicoFinal) {
+      do {
+        idUnicoFinal = generateIdUnico();
+        existingDireccion = await prisma.direccion.findUnique({
+          where: { idUnico: idUnicoFinal }
+        });
+      } while (existingDireccion);
+      console.log('🆕 Generando nuevo idUnico:', idUnicoFinal);
+    }
 
     // Crear la dirección con todos los campos
     const direccionCreada = await prisma.direccion.create({
       data: {
-        idUnico,
+        idUnico: idUnicoFinal,
         nombre: `${direccion.calle} ${direccion.numero}`,
         calle: direccion.calle,
         numero: direccion.numero,
@@ -75,7 +141,12 @@ export async function POST(request: NextRequest) {
               .map(dpto => ({
                 nombre: `${piso.nombre}${dpto}`,
                 piso: piso.nombre,
-                dpto: dpto
+                dpto: dpto,
+                numero: null, // Mantener campo para números
+                metodo: 'mensaje',
+                estado: 'activo',
+                esPropio: false,
+                estadoAsignacion: 'libre'
               }))
           )
         }

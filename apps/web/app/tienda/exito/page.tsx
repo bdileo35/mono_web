@@ -10,7 +10,6 @@ export default function ExitoPage() {
   const router = useRouter();
   const [venta, setVenta] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     const idUnico = searchParams.get('idUnico');
@@ -22,77 +21,52 @@ export default function ExitoPage() {
         precioTotal: parseInt(searchParams.get('monto') || '5000')
       };
       setVenta(ventaData);
-    setLoading(false);
+      
+      // 🔧 CRÍTICO: Guardar el IDU en localStorage para que el wizard lo use
+      localStorage.setItem('ventaIdUnico', idUnico);
+      console.log('✅ IDU guardado en localStorage:', idUnico);
+      
+      // 🔧 CRÍTICO: Guardar la venta en la base de datos automáticamente
+      console.log('🚀 Iniciando guardado automático...');
+      guardarVentaEnBaseDeDatos(ventaData);
+      
+      setLoading(false);
     }
   }, [searchParams]);
 
-  const handleGuardarVenta = async () => {
-    if (!venta) return;
-    
-    setGuardando(true);
+  const guardarVentaEnBaseDeDatos = async (ventaData: any) => {
     try {
+      console.log('🔄 Guardando venta en base de datos:', ventaData);
+      
       const response = await fetch('/api/admin/ventas', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          idUnico: venta.idUnico,
-          cantidadTimbres: venta.cantidadTimbres,
-          monto: venta.precioTotal
+          idUnico: ventaData.idUnico,
+          cantidadTimbres: ventaData.cantidadTimbres,
+          monto: ventaData.precioTotal
         })
       });
 
-      const data = await response.json();
+      const result = await response.json();
       
-      if (data.success) {
-        alert('✅ Venta guardada exitosamente');
-        // Redirigir a la configuración del edificio
-        router.push(`/admin/${venta.idUnico}`);
+      if (result.success) {
+        console.log('✅ Venta guardada exitosamente en BD:', result);
       } else {
-        alert('❌ Error al guardar: ' + data.error);
+        console.error('❌ Error guardando venta en BD:', result.error);
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('❌ Error al guardar la venta');
-    } finally {
-      setGuardando(false);
+      console.error('❌ Error de conexión guardando venta:', error);
     }
   };
 
-  const handleConfigurar = async () => {
+  const handleConfigurar = () => {
     if (!venta) return;
     
-    setGuardando(true);
-    try {
-      // Primero guardar la venta
-      const response = await fetch('/api/admin/ventas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          idUnico: venta.idUnico,
-          cantidadTimbres: venta.cantidadTimbres,
-          monto: venta.precioTotal
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        alert('✅ Venta guardada y redirigiendo a configuración...');
-        // Redirigir a la configuración del edificio
-        router.push(`/admin/${venta.idUnico}`);
-      } else {
-        alert('❌ Error al guardar: ' + data.error);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('❌ Error al guardar la venta');
-    } finally {
-      setGuardando(false);
-    }
+    // Simplemente ir al wizard
+    router.push(`/admin/wizard-estructura?idUnico=${venta.idUnico}`);
   };
 
   if (loading) {
@@ -142,52 +116,27 @@ export default function ExitoPage() {
               </div>
             )}
             
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button 
-                onClick={handleGuardarVenta}
-                disabled={guardando}
-                style={{ 
-                  flex: 1,
-                  maxWidth: 200,
-                  background: guardando ? '#ccc' : '#28a745', 
-                  color: '#fff', 
-                  border: 'none',
-                  padding: '14px 24px', 
-                  borderRadius: 10, 
-                  fontWeight: 700, 
-                  fontSize: 16,
-                  cursor: guardando ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 2px 8px #0001'
-                }}
-              >
-                {guardando ? 'Guardando...' : '💾 Ver en Panel'}
-              </button>
-              
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
               <button 
                 onClick={handleConfigurar}
-                disabled={guardando}
                 style={{ 
-                  flex: 1,
-                  maxWidth: 200,
-                  background: guardando ? '#ccc' : '#1a4fa3', 
+                  maxWidth: 300,
+                  background: '#1a4fa3', 
                   color: '#fff', 
                   border: 'none',
-                  padding: '14px 24px', 
+                  padding: '14px 32px', 
                   borderRadius: 10, 
                   fontWeight: 700, 
                   fontSize: 16,
-                  cursor: guardando ? 'not-allowed' : 'pointer',
+                  cursor: 'pointer',
                   boxShadow: '0 2px 8px #0001'
                 }}
               >
-                {guardando ? 'Guardando...' : '⚙️ Configurar'}
+                ⚙️ Configurar Edificio
               </button>
             </div>
             
-            <p style={{ color: '#666', fontSize: 12, marginTop: 12 }}>
-              <strong>Ver en Panel:</strong> Solo guarda la venta en el panel de administración<br/>
-              <strong>Configurar:</strong> Guarda la venta y va directo a configurar el edificio
-            </p>
+
           </div>
         </CardContainer>
       </main>

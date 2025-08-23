@@ -37,6 +37,20 @@ export default function ConfigTimbres({ estructura, timbres, onChange, maxDptos 
   const getMethodIcon = (metodo: string) => {
     switch (metodo) {
       case 'mensaje':
+        return '💬';
+      case 'llamada':
+        return '📞';
+      case 'video':
+        return '📹';
+      default:
+        return '💬';
+    }
+  };
+
+  // Función para obtener el ícono del método como componente React (para la grilla)
+  const getMethodIconComponent = (metodo: string) => {
+    switch (metodo) {
+      case 'mensaje':
         return <MdMessage size={16} />;
       case 'llamada':
         return <MdCall size={16} />;
@@ -271,7 +285,7 @@ export default function ConfigTimbres({ estructura, timbres, onChange, maxDptos 
                 >
                   {isConfigured ? (
                     <div style={{ color: '#1976d2' }}>
-                      {getMethodIcon(conf?.metodo || 'mensaje')}
+                      {getMethodIconComponent(conf?.metodo || 'mensaje')}
                     </div>
                   ) : isAsignado ? (
                     <div style={{ color: '#f44336', fontSize: 18, fontWeight: 800 }}>
@@ -307,72 +321,15 @@ export default function ConfigTimbres({ estructura, timbres, onChange, maxDptos 
           <div style={{ background: '#fff', borderRadius: 16, padding: 32, width: 440, boxShadow: '0 8px 32px #0003', position: 'relative' }} onClick={e => e.stopPropagation()}>
             <button onClick={() => setModal(null)} style={{ position: 'absolute', top: 12, right: 12, background: '#f0f0f0', border: 'none', borderRadius: '50%', width: 32, height: 32, fontSize: 20, fontWeight: 700, color: '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, transition: 'all 0.2s ease' }}>×</button>
             <h3 style={{ color: '#1976d2', fontWeight: 800, marginBottom: 24, fontSize: 22, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <span role="img" aria-label="casita">🏠</span> {form.estadoAsignacion === 'solicitado' ? 'Asignar' : form.estadoAsignacion === 'asignado' ? 'Configurar' : 'Configurar'} Timbre {modal.piso}-{modal.dpto}
+              <span role="img" aria-label="casita">🏠</span> {form.estadoAsignacion === 'solicitado' ? 'Asignar' : form.estadoAsignacion === 'asignado' ? 'Configurar' : 'Configurar'} Timbre
             </h3>
-            {/* Campo editable Nombre del Timbre */}
-            <div style={{ marginBottom: 8 }}>
-              <label htmlFor="nombre-timbre" style={{ fontWeight: 600, color: '#1976d2', display: 'block', marginBottom: 6, fontSize: 15 }}>
-                🏷️ Nombre del Timbre (opcional)
-              </label>
-              <input
-                id="nombre-timbre"
-                value={form.nombre ?? `${modal.piso}-${modal.dpto}`}
-                onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: 10,
-                  borderRadius: 8,
-                  border: '1.5px solid #90caf9',
-                  background: '#f8faff',
-                  color: '#1976d2',
-                  fontSize: 16,
-                  outline: 'none',
-                  transition: 'all 0.2s ease',
-                  fontWeight: 600
-                }}
-                placeholder={`Ej: Portería, Depto Juan, SUM...`}
-              />
-            </div>
-            {/* Nombre del solicitante/residente */}
-            {form.nombre ? (
-              <div style={{
-                background: '#e3f2fd',
-                color: '#1976d2',
-                fontWeight: 700,
-                fontSize: 16,
-                borderRadius: 8,
-                padding: '8px 14px',
-                marginBottom: 8,
-                textAlign: 'center',
-                border: '1.5px solid #90caf9'
-              }}>
-                👤 Solicitante: {form.nombre}
+            <div style={{ textAlign: 'center', marginBottom: 32 }}>
+              <div style={{ fontSize: 120, fontWeight: 900, color: '#1976d2', background: '#f8faff', borderRadius: 16, padding: '16px 24px', border: '3px solid #e3f2fd', marginBottom: 16 }}>
+                {modal.piso}-{modal.dpto}
               </div>
-            ) : (
-              <div style={{
-                background: '#fffde7',
-                color: '#bfa100',
-                fontWeight: 500,
-                fontSize: 15,
-                borderRadius: 8,
-                padding: '7px 12px',
-                marginBottom: 8,
-                textAlign: 'center',
-                border: '1.5px solid #ffe082'
-              }}>
-                (Sin nombre de solicitante)
               </div>
-            )}
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              
-              <div style={{display: 'flex', alignItems: 'center', gap: 12, background: '#f0f4fa', padding: '12px 16px', borderRadius: 10, border: '1px solid #e0e8f0'}}>
-                <input type="checkbox" id="esMio" checked={form.esPropio} onChange={(e) => setForm(f => ({ ...f, esPropio: e.target.checked }))} style={{width: 20, height: 20, accentColor: '#1976d2'}} />
-                <label htmlFor="esMio" style={{fontWeight: 600, color: '#0d47a1', cursor: 'pointer', fontSize: 15}}>
-                  {form.esPropio ? '✅ Timbre Propio' : '📱 Asignar a mi cuenta (Timbre Propio)'}
-                </label>
-              </div>
-
               <div>
                 <label htmlFor="wsp-numero" style={{fontWeight: 600, color: '#333', display: 'block', marginBottom: 8, fontSize: 15}}>
                   📱 Número de WhatsApp
@@ -400,7 +357,7 @@ export default function ConfigTimbres({ estructura, timbres, onChange, maxDptos 
               <div style={{display: 'flex', gap: 16, width: '100%'}}>
                 <div style={{flex: 1}}>
                   <label htmlFor="metodo" style={{fontWeight: 600, color: '#333', display: 'block', marginBottom: 8, fontSize: 15}}>
-                    {getMethodIcon(form.metodo || 'mensaje')} Método de Contacto
+                    {getMethodIconComponent(form.metodo || 'mensaje')} Método de Contacto
                   </label>
                   <select 
                     id="metodo" 
@@ -470,7 +427,68 @@ export default function ConfigTimbres({ estructura, timbres, onChange, maxDptos 
                   </button>
                 )}
                 <button 
-                  onClick={handleGuardar} 
+                  onClick={async () => {
+                    try {
+                      // Configurar directamente sin modal de confirmación
+                      const actualizado: TimbreConfig = {
+                        id: form.id || '',
+                        piso: form.piso || '',
+                        dpto: form.dpto || '',
+                        numero: form.numero || '',
+                        metodo: form.metodo || 'mensaje',
+                        estado: form.estado || 'activo',
+                        esPropio: form.esPropio || false,
+                        estadoAsignacion: 'configurado'
+                      };
+
+                      // Guardar en la base de datos
+                      const idUnico = localStorage.getItem('ventaIdUnico');
+                      console.log('🔍 IDU desde localStorage:', idUnico);
+                      console.log('🔍 URL actual:', window.location.href);
+                      
+                      // Extraer IDU de la URL si no está en localStorage
+                      const urlParams = new URLSearchParams(window.location.search);
+                      const idUnicoFromUrl = urlParams.get('idUnico');
+                      console.log('🔍 IDU desde URL:', idUnicoFromUrl);
+                      
+                      const idUnicoToUse = idUnico || idUnicoFromUrl;
+                      console.log('🔍 IDU a usar:', idUnicoToUse);
+                      
+                      if (idUnicoToUse) {
+                        console.log('📡 Enviando request a API...');
+                        const response = await fetch(`/api/admin/timbres/${idUnicoToUse}`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            timbres: [...timbres.filter(t => t.id !== form.id), actualizado]
+                          })
+                        });
+
+                        console.log('📡 Response status:', response.status);
+                        
+                        if (!response.ok) {
+                          const errorText = await response.text();
+                          console.error('❌ Error response:', errorText);
+                          throw new Error('Error al guardar en la base de datos');
+                        }
+                        
+                        const result = await response.json();
+                        console.log('✅ API response:', result);
+                      } else {
+                        console.error('❌ No se encontró IDU');
+                      }
+
+                      // Actualizar estado local
+                      const otros = timbres.filter(t => t.id !== form.id);
+                      onChange([...otros, actualizado]);
+                      setModal(null);
+                    } catch (error) {
+                      console.error('Error guardando timbre:', error);
+                      alert('Error de conexión al guardar timbres. Intenta nuevamente.');
+                    }
+                  }} 
                   style={{ 
                     background: '#1976d2', 
                     color: '#fff', 
@@ -485,10 +503,7 @@ export default function ConfigTimbres({ estructura, timbres, onChange, maxDptos 
                     minWidth: 200
                   }}
                 >
-                  {form.esPropio ? '💾 Guardar Cambios' : 
-                   form.estadoAsignacion === 'solicitado' ? '✅ Aprobar Solicitud' : 
-                   form.estadoAsignacion === 'asignado' ? '⚙️ Configurar Timbre' :
-                   '💾 Guardar Cambios'}
+                  {`${getMethodIcon(form.metodo || 'mensaje')} Configurar Timbre`}
               </button>
               </div>
             </div>

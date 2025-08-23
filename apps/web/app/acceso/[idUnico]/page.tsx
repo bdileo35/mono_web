@@ -54,6 +54,8 @@ export default function AccesoPage() {
         
         if (result.success) {
           setData(result.data);
+          // Guardar el IDU en localStorage para que el Admin pueda acceder
+          localStorage.setItem('ventaIdUnico', params.idUnico);
         } else {
           setError(result.error || 'Error al cargar los datos');
         }
@@ -189,6 +191,7 @@ export default function AccesoPage() {
           numero={data.numero}
           idUnico={data.idUnico}
           estructura={data.estructura}
+          timbres={data.timbres}
           showBottomButtons={true}
           onTiendaClick={() => {
             if (typeof window !== 'undefined') {

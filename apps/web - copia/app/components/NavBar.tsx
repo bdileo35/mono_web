@@ -46,15 +46,41 @@ export default function NavBar() {
     
     if (isAdmin) {
       // Admin: Abrir wizard desde paso 2 (Estructura ya cargada)
-      const datosGuardados = localStorage.getItem('wizardData');
-      if (datosGuardados) {
-        const data = JSON.parse(datosGuardados);
-        data.paso = 2; // Ir directamente al paso de Timbres
-        localStorage.setItem('wizardData', JSON.stringify(data));
-      }
-      // Disparar evento para abrir wizard
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('abrir-wizard-config'));
+      const idUnico = localStorage.getItem('ventaIdUnico');
+      if (idUnico) {
+        // Cargar datos existentes del edificio
+        fetch(`/api/publico/${idUnico}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Guardar datos en localStorage
+              localStorage.setItem('wizardData', JSON.stringify({
+                paso: 2, // Ir directamente al paso de Timbres
+                direccion: data.direccion,
+                estructura: data.estructura,
+                timbres: data.timbres || []
+              }));
+              // Redirigir al wizard
+              router.push(`/admin/wizard-estructura?idUnico=${idUnico}`);
+            } else {
+              // Si no hay datos, crear estructura básica
+              localStorage.setItem('wizardData', JSON.stringify({
+                paso: 2,
+                direccion: { calle: '', numero: '' },
+                estructura: [],
+                timbres: []
+              }));
+              router.push(`/admin/wizard-estructura?idUnico=${idUnico}`);
+            }
+          })
+          .catch(error => {
+            console.error('Error cargando datos:', error);
+            // En caso de error, ir al wizard con datos básicos
+            router.push(`/admin/wizard-estructura?idUnico=${idUnico}`);
+          });
+      } else {
+        // Si no hay IDU, ir al wizard sin datos
+        router.push('/admin/wizard-estructura');
       }
     } else {
       // User: Abrir modal de su timbre
@@ -167,6 +193,9 @@ export default function NavBar() {
               <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
                 {userRole === 'SuperAdmin' ? '👑 Super Admin' : 
                  userRole === 'Admin' ? '👨‍💼 Admin' : '👤 Usuario'}
+              </div>
+              <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+                🏢 ID: {localStorage.getItem('ventaIdUnico') || 'N/A'}
               </div>
             </li>
 

@@ -33,6 +33,7 @@ interface Edificio {
 
 function SuperPanelContent() {
   const [section, setSection] = useState("dashboard");
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [precioPorTimbre, setPrecioPorTimbre] = useState('');
   const [editandoPrecio, setEditandoPrecio] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -41,6 +42,16 @@ function SuperPanelContent() {
   const [loadingEdificios, setLoadingEdificios] = useState(false);
   const [ventas, setVentas] = useState<any[]>([]);
   const [loadingVentas, setLoadingVentas] = useState(false);
+
+  const toggleRow = (id: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedRows(newExpanded);
+  };
 
   useEffect(() => {
     if (section === 'config') cargarPrecio();
@@ -150,17 +161,179 @@ function SuperPanelContent() {
   const renderContent = () => {
     switch (section) {
       case 'dashboard':
-            return (
+  return (
+          <div style={{ height: '100%', padding: '10px' }}>
+      <div style={{
+              border: '1px solid #ddd', 
+              borderRadius: '8px', 
+              overflow: 'hidden',
+              backgroundColor: '#fff',
+              height: '100%'
+            }}>
+              {/* Header */}
               <div style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-            height: '100%',
-            gap: 18
+                display: 'grid',
+                gridTemplateColumns: '50px 1fr 100px 100px 100px 120px',
+                backgroundColor: '#1a4fa3',
+                color: '#fff',
+                fontWeight: 'bold',
+                fontSize: '14px'
               }}>
-                <h2 style={{ color: "#1a4fa3", fontWeight: 900, fontSize: 32 }}>Dashboard</h2>
+                <div style={{ padding: '12px', textAlign: 'center' }}>+</div>
+                <div style={{ padding: '12px' }}>ID Venta</div>
+                <div style={{ padding: '12px', textAlign: 'center' }}>Timbres</div>
+                <div style={{ padding: '12px', textAlign: 'center' }}>Monto</div>
+                <div style={{ padding: '12px', textAlign: 'center' }}>Estado</div>
+                <div style={{ padding: '12px', textAlign: 'center' }}>Fecha</div>
               </div>
+
+              {/* Rows */}
+              {[
+                {
+                  id: 'V001',
+                  idUnico: 'EDIF_001',
+                  cantidadTimbres: 15,
+                  monto: 150,
+                  estado: 'PAGADA',
+                  fecha: '2024-01-15',
+                  edificio: {
+                    direccion: 'Av. Siempre Viva 123',
+                    admin: 'Juan Pérez',
+                    timbresConfigurados: 10,
+                    timbresAsignados: 5,
+                    timbres: [
+                      { id: 1, piso: '1', dpto: 'A', configurado: true },
+                      { id: 2, piso: '1', dpto: 'B', configurado: false },
+                      { id: 3, piso: '2', dpto: 'A', configurado: true }
+                    ]
+                  }
+                },
+                {
+                  id: 'V002',
+                  idUnico: 'EDIF_002',
+                  cantidadTimbres: 20,
+                  monto: 200,
+                  estado: 'PENDIENTE',
+                  fecha: '2024-02-20',
+                  edificio: {
+                    direccion: 'Calle Principal 456',
+                    admin: 'María García',
+                    timbresConfigurados: 18,
+                    timbresAsignados: 12,
+                    timbres: [
+                      { id: 1, piso: '1', dpto: 'A', configurado: true },
+                      { id: 2, piso: '1', dpto: 'B', configurado: true }
+                    ]
+                  }
+                }
+              ].map((venta) => (
+                <div key={venta.id}>
+                  {/* Main Row */}
+              <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '50px 1fr 100px 100px 100px 120px',
+                    borderBottom: '1px solid #eee',
+                    cursor: 'pointer',
+                    backgroundColor: expandedRows.has(venta.id) ? '#f0f8ff' : '#fff'
+                  }}
+                  onClick={() => toggleRow(venta.id)}>
+                    <div style={{ padding: '12px', textAlign: 'center', fontSize: '18px', color: '#1a4fa3' }}>
+                      {expandedRows.has(venta.id) ? '−' : '+'}
+                    </div>
+                    <div style={{ padding: '12px', fontWeight: 'bold', color: '#333' }}>{venta.idUnico}</div>
+                    <div style={{ padding: '12px', textAlign: 'center', color: '#1a4fa3', fontWeight: 700 }}>{venta.cantidadTimbres}</div>
+                    <div style={{ padding: '12px', textAlign: 'center', color: '#388e3c', fontWeight: 700 }}>${venta.monto}</div>
+                <div style={{
+                      padding: '12px', 
+                      textAlign: 'center',
+                      color: '#fff',
+                      background: venta.estado === 'PAGADA' ? '#28a745' : '#ffc107',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      margin: '0 8px'
+                    }}>
+                      {venta.estado === 'PAGADA' ? 'Pag.' : 'Pend.'}
+                    </div>
+                    <div style={{ padding: '12px', textAlign: 'center', color: '#666', fontSize: '12px' }}>{venta.fecha}</div>
+                </div>
+
+                  {/* Expanded Details */}
+                  {expandedRows.has(venta.id) && venta.edificio && (
+                <div style={{
+                      backgroundColor: '#f8f9fa',
+                      padding: '16px',
+                      borderBottom: '1px solid #eee'
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#333' }}>
+                          <strong>Dirección:</strong> <span>{venta.edificio.direccion}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#333' }}>
+                          <strong>Admin:</strong> <span>{venta.edificio.admin}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#333' }}>
+                          <strong>Configurados:</strong> <span>{venta.edificio.timbresConfigurados}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#333' }}>
+                          <strong>Asignados:</strong> <span>{venta.edificio.timbresAsignados}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#333' }}>
+                          <strong>Timbres:</strong> 
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <span>Tot: {venta.edificio.timbres.length}</span>
+                            <span>Config: {venta.edificio.timbresConfigurados}</span>
+                            <span>Libres: {venta.edificio.timbres.length - venta.edificio.timbresConfigurados}</span>
+              <button
+                style={{
+                                background: '#1a4fa3',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                fontSize: '12px',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => {
+                                // Aquí iría la funcionalidad para mostrar el grid de timbres
+                                alert('Mostrar grid de timbres como en la imagen');
+                              }}
+                            >
+                              +
+              </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Timbres Grid */}
+                      <div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                          {venta.edificio.timbres.map((timbre) => (
+                            <div key={timbre.id} style={{
+                              padding: '8px',
+                              border: `2px solid ${timbre.configurado ? '#28a745' : '#ddd'}`,
+                              borderRadius: '6px',
+                              backgroundColor: timbre.configurado ? '#f8fff8' : '#f9f9f9',
+                              textAlign: 'center',
+                              fontSize: '12px',
+                              color: timbre.configurado ? '#28a745' : '#666',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => {
+                              // Aquí iría la funcionalidad para tocar timbre
+                              alert(`Tocar timbre ${timbre.piso}${timbre.dpto}`);
+                            }}>
+                              {timbre.piso}{timbre.dpto}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         );
 
       case 'edificios':
@@ -177,29 +350,35 @@ function SuperPanelContent() {
               loading={loadingEdificios}
               loadingText="Cargando edificios..."
               emptyText="No hay edificios registrados"
-                            renderCell={(column, row) => {
+              renderCell={(column, row) => {
                 if (column.key === 'idUnico') {
                   return (
                     <a 
                       href={`/admin/${row.idUnico}`}
                       style={{ 
-                        color: '#1976d2', 
-                        fontWeight: 600, 
+                        color: '#0d2b5e', 
+                        fontWeight: 800, 
                         textDecoration: 'none',
-                        fontSize: 12,
-                        padding: '4px 8px',
-                        background: '#e3f2fd',
-                        borderRadius: 6,
-                        border: '1px solid #90caf9',
-                        transition: 'all 0.2s'
+                        fontSize: 14,
+                        padding: '6px 12px',
+                        background: '#e8f4fd',
+                        borderRadius: 8,
+                        border: '2px solid #1976d2',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 2px 4px rgba(25,118,210,0.2)',
+                        display: 'inline-block',
+                        minWidth: '80px',
+                        textAlign: 'center'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = '#bbdefb';
                         e.currentTarget.style.transform = 'scale(1.05)';
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(25,118,210,0.3)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = '#e3f2fd';
+                        e.currentTarget.style.background = '#e8f4fd';
                         e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(25,118,210,0.2)';
                       }}
                     >
                       {row.idUnico}
@@ -212,10 +391,10 @@ function SuperPanelContent() {
                 if (column.key === 'timbresActivos') {
                   return <span style={{ color: '#388e3c', fontWeight: 700 }}>{row[column.key]}</span>;
                 }
-                return row[column.key];
+                return <span style={{ color: '#333', fontWeight: 500 }}>{row[column.key]}</span>;
               }}
             />
-                </div>
+          </div>
         );
 
       case 'usuarios':
@@ -304,23 +483,29 @@ function SuperPanelContent() {
                                 <a 
                       href={`/admin/${row.idUnico}`}
                                   style={{ 
-                                    color: '#1976d2', 
-                                    fontWeight: 600, 
+                                    color: '#0d2b5e', 
+                                    fontWeight: 800, 
                                     textDecoration: 'none',
-                                    fontSize: 12,
-                                    padding: '4px 8px',
-                                    background: '#e3f2fd',
-                                    borderRadius: 6,
-                                    border: '1px solid #90caf9',
-                                    transition: 'all 0.2s'
+                                    fontSize: 14,
+                                    padding: '6px 12px',
+                                    background: '#e8f4fd',
+                                    borderRadius: 8,
+                                    border: '2px solid #1976d2',
+                                    transition: 'all 0.2s',
+                                    boxShadow: '0 2px 4px rgba(25,118,210,0.2)',
+                                    display: 'inline-block',
+                                    minWidth: '80px',
+                                    textAlign: 'center'
                                   }}
                                   onMouseEnter={(e) => {
                                     e.currentTarget.style.background = '#bbdefb';
                                     e.currentTarget.style.transform = 'scale(1.05)';
+                                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(25,118,210,0.3)';
                                   }}
                                   onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = '#e3f2fd';
+                                    e.currentTarget.style.background = '#e8f4fd';
                                     e.currentTarget.style.transform = 'scale(1)';
+                                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(25,118,210,0.2)';
                                   }}
                                 >
                       {row.idUnico}
@@ -349,12 +534,28 @@ function SuperPanelContent() {
                   );
                 }
                 if (column.key === 'createdAt') {
-                  return <span style={{ color: '#666', fontSize: 12 }}>{new Date(row.createdAt).toLocaleDateString()}</span>;
+                  const fecha = new Date(row.createdAt);
+                  const fechaFormateada = fecha.toLocaleDateString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  });
+                  const horaFormateada = fecha.toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                  });
+                  return (
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#333', fontSize: 12, fontWeight: 600 }}>{fechaFormateada}</div>
+                      <div style={{ color: '#666', fontSize: 10 }}>{horaFormateada}</div>
+                    </div>
+                  );
                 }
                 return row[column.key];
               }}
             />
-                          </div>
+                </div>
         );
 
       case 'logs':
@@ -364,7 +565,7 @@ function SuperPanelContent() {
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-            height: '100%',
+          height: '100%',
             gap: 18
               }}>
                 <h2 style={{ color: "#1a4fa3", fontWeight: 900, fontSize: 32 }}>Logs</h2>

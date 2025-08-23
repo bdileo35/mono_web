@@ -24,6 +24,7 @@ interface QRingContainerProps {
   numero: string;
   idUnico: string;
   estructura: PisoConfig[];
+  timbres?: TimbreConfig[];
   onTimbreTocado?: (piso: string | number, dpto: string) => void;
   showBottomButtons?: boolean;
   onTiendaClick?: () => void;
@@ -35,6 +36,7 @@ export default function QRingContainer({
   numero,
   idUnico,
   estructura,
+  timbres = [],
   onTimbreTocado,
   showBottomButtons = false,
   onTiendaClick,
@@ -44,16 +46,6 @@ export default function QRingContainer({
   const [pisoSel, setPisoSel] = useState<string | number | null>(null);
   const [dptoSel, setDptoSel] = useState<string | null>(null);
   const [showRing, setShowRing] = useState(false);
-  const [timbres, setTimbres] = useState<TimbreConfig[]>([]);
-
-  // Cargar datos de timbres desde localStorage
-  useEffect(() => {
-    const datosGuardados = localStorage.getItem('wizardData');
-    if (datosGuardados) {
-      const data = JSON.parse(datosGuardados);
-      setTimbres(data.timbres || []);
-    }
-  }, []);
 
   // Derivar listas de pisos y dptos de la estructura
   const pisosConfig = estructura?.map((piso: PisoConfig) => piso.nombre) || [];
@@ -126,19 +118,29 @@ export default function QRingContainer({
       return;
     }
     
+    // Buscar el timbre configurado
+    const timbreConfigurado = timbres.find(t => t.piso === pisoSel.toString() && t.dpto === dptoSel);
+    
+    if (!timbreConfigurado || !timbreConfigurado.numero) {
+      alert('Error: No se encontró el número configurado para este timbre.');
+      return;
+    }
+    
     setShowRing(true);
     setTimeout(() => {
       if (onTimbreTocado) {
         onTimbreTocado(pisoSel, dptoSel);
       } else {
-        // Comportamiento por defecto: abrir WhatsApp
+        // Comportamiento por defecto: abrir WhatsApp o llamada según método
         const mensaje = encodeURIComponent(`Hola, estoy en la puerta de ${calle} ${numero}, timbre ${pisoSel}${dptoSel}.`);
         
-        // Número de WhatsApp de prueba (reemplazar con número real)
-        const numeroWhatsApp = '+5491122334455'; // Número de ejemplo
-        
-        // Abrir WhatsApp con el mensaje
-        window.open(`https://wa.me/${numeroWhatsApp}?text=${mensaje}`, '_blank');
+        if (timbreConfigurado.metodo === 'mensaje' || timbreConfigurado.metodo === 'video') {
+          // Abrir WhatsApp directamente
+          window.open(`whatsapp://send?phone=${timbreConfigurado.numero}&text=${mensaje}`, '_blank');
+        } else if (timbreConfigurado.metodo === 'llamada') {
+          // Abrir llamada directamente
+          window.open(`tel:${timbreConfigurado.numero}`, '_blank');
+        }
       }
       setShowRing(false);
     }, 2500);
@@ -203,7 +205,7 @@ export default function QRingContainer({
         
         {/* QR Display */}
         <div style={{ padding: 6, border: '2px solid #e0e3ea', borderRadius: 16, marginBottom: 8 }}>
-          <QRCodeDisplay value={`https://qring.app/acceso/${idUnico}`} />
+          <QRCodeDisplay value={`http://localhost:3000/acceso/${idUnico}`} />
         </div>
 
         {/* Contenedor de Selección (Piso/Dpto) */}

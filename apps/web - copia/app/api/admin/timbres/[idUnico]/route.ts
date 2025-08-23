@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../../../../lib/prisma';
 
 interface TimbreConfig {
   id: string;
@@ -20,7 +18,10 @@ export async function POST(
 ) {
   const { idUnico } = await params;
   try {
+    console.log('🔄 Guardando timbres para IDU:', idUnico);
+    
     const { timbres } = await request.json() as { timbres: TimbreConfig[] };
+    console.log('📦 Timbres recibidos:', timbres.length, 'timbres');
     
     if (!idUnico) {
       return NextResponse.json(
@@ -36,6 +37,8 @@ export async function POST(
       );
     }
 
+    console.log('🔍 Buscando dirección...');
+    
     // Buscar la dirección por ID único
     const direccion = await prisma.direccion.findUnique({
       where: { idUnico: idUnico },
@@ -43,11 +46,14 @@ export async function POST(
     });
 
     if (!direccion) {
+      console.error('❌ Dirección no encontrada para IDU:', idUnico);
       return NextResponse.json(
         { success: false, error: 'Dirección no encontrada' },
         { status: 404 }
       );
     }
+    
+    console.log('✅ Dirección encontrada:', direccion.nombre, 'con', direccion.timbres.length, 'timbres');
 
     // Actualizar cada timbre con su configuración
     const timbresActualizados = await Promise.all(
