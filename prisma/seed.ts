@@ -1,70 +1,31 @@
 // prisma/seed.ts
-import { PrismaClient, Usuario } from '@prisma/client';
+import { PrismaClient } from '../apps/web/node_modules/.prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Iniciando seed...');
-// Borra los datos existentes para evitar duplicados
-  await prisma.telefono.deleteMany();
-  await prisma.timbre.deleteMany();
-  await prisma.usuario.deleteMany();
-  await prisma.direccion.deleteMany();
+  console.log('🌱 Iniciando seed...');
 
-  // Crea la dirección
-  const direccion = await prisma.direccion.create({
-    data: {
-      idUnico: 'qr_demo123',
-      calle: 'Av. Demo',
-      numero: '100',
-      ciudad: 'Ciudad Demo',
-      provincia: 'Provincia Demo',
-      pais: 'Argentina',
-    },
+  // Limpiar datos existentes
+  await prisma.venta.deleteMany();
+  await prisma.timbre.deleteMany();
+  await prisma.estructura.deleteMany();
+  await prisma.direccion.deleteMany();
+  await prisma.configuracion.deleteMany();
+
+  // Crear configuración inicial
+  await prisma.configuracion.upsert({
+    where: { clave: 'precioPorTimbre' },
+    update: { valor: '6900' },
+    create: {
+      clave: 'precioPorTimbre',
+      valor: '6900',
+      descripcion: 'Precio por timbre en pesos argentinos'
+    }
   });
 
-  // Crea usuarios y teléfonos
-  const usuarios: Usuario[] = [];
-  for (let i = 1; i <= 3; i++) {
-    const usuario = await prisma.usuario.create({
-      data: {
-        nombre: `Usuario ${i}`,
-        email: `usuario${i}@demo.com`,
-      },
-    });
-    // Crea teléfono para cada usuario
-    await prisma.telefono.create({
-      data: {
-        numero: `+54911111111${i}`,
-        activo: true,
-        whatsapp: true,
-        voz: i !== 2,
-        video: i === 3,
-        usuarioId: usuario.id,
-      },
-    });
-    usuarios.push(usuario);
-  }
-
-  // Crea timbres y los asocia a la dirección y a los usuarios
-  const timbres = [
-    { piso: '1', dpto: 'A', usuarioId: usuarios[0].id },
-    { piso: '1', dpto: 'B', usuarioId: usuarios[1].id },
-    { piso: '2', dpto: 'A', usuarioId: usuarios[2].id },
-  ];
-
-  for (const t of timbres) {
-    await prisma.timbre.create({
-      data: {
-        piso: t.piso,
-        dpto: t.dpto,
-        direccionId: direccion.id,
-        usuarioId: t.usuarioId,
-      },
-    });
-  }
-
-  console.log('🌱 Seed de demo insertado correctamente.');
+  console.log('✅ Configuración inicial creada');
+  console.log('🌱 Base de datos completamente limpia. Lista para el flujo de prueba.');
 }
 
 main()
