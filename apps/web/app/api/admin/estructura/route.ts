@@ -41,10 +41,7 @@ export async function GET(request: NextRequest) {
       where: { idUnico },
       include: {
         estructura: {
-          orderBy: { orden: 'desc' },
-          include: {
-            timbres: true
-          }
+          orderBy: { orden: 'desc' }
         },
         timbres: true
       }
@@ -116,6 +113,15 @@ export async function POST(request: NextRequest) {
       
       if (existingDireccion) {
         console.log('✅ Dirección encontrada, actualizando estructura...');
+        
+        // Primero eliminar estructura y timbres existentes
+        await prisma.estructura.deleteMany({
+          where: { direccionId: existingDireccion.id }
+        });
+        await prisma.timbre.deleteMany({
+          where: { direccionId: existingDireccion.id }
+        });
+        
         // Actualizar la dirección existente
         const direccionActualizada = await prisma.direccion.update({
           where: { idUnico: idUnicoFinal },
@@ -123,35 +129,7 @@ export async function POST(request: NextRequest) {
             nombre: `${direccion.calle} ${direccion.numero}`,
             calle: direccion.calle,
             numero: direccion.numero,
-            ciudad: direccion.ciudad || null,
-            // Eliminar estructura y timbres existentes
-            estructura: { deleteMany: {} },
-            timbres: { deleteMany: {} },
-            // Crear nueva estructura
-            estructura: {
-              create: estructura.map((piso, index) => ({
-                nombre: piso.nombre,
-                dptos: JSON.stringify(piso.dptos.filter(d => d.trim())),
-                orden: estructura.length - index
-              }))
-            },
-            // Crear nuevos timbres
-            timbres: {
-              create: estructura.flatMap(piso => 
-                piso.dptos
-                  .filter(dpto => dpto.trim())
-                  .map(dpto => ({
-                    nombre: `${piso.nombre}${dpto}`,
-                    piso: piso.nombre,
-                    dpto: dpto,
-                    numero: null, // Mantener campo para números
-                    metodo: 'mensaje',
-                    estado: 'activo',
-                    esPropio: false,
-                    estadoAsignacion: 'libre'
-                  }))
-              )
-            }
+            ciudad: direccion.ciudad || null
           },
           include: {
             timbres: true,
@@ -161,9 +139,44 @@ export async function POST(request: NextRequest) {
           }
         });
         
+        // Crear nueva estructura
+        const estructuraGuardada = await Promise.all(
+          estructura.map(async (piso, index) => {
+            return await prisma.estructura.create({
+              data: {
+                direccionId: existingDireccion.id,
+                nombre: piso.nombre,
+                dptos: JSON.stringify(piso.dptos.filter(d => d.trim())),
+                orden: estructura.length - index
+              }
+            });
+          })
+        );
+        
+        // Crear nuevos timbres
+        const timbresGuardados = await Promise.all(
+          estructura.flatMap(piso => 
+            piso.dptos
+              .filter(dpto => dpto.trim())
+              .map(dpto => ({
+                nombre: `${piso.nombre}${dpto}`,
+                piso: piso.nombre,
+                dpto: dpto,
+                numero: null,
+                metodo: 'mensaje',
+                estado: 'activo',
+                esPropio: false,
+                estadoAsignacion: 'libre',
+                direccionId: existingDireccion.id
+              }))
+          ).map(timbreData => prisma.timbre.create({ data: timbreData }))
+        );
+        
         return NextResponse.json({
           success: true,
           direccion: direccionActualizada,
+          estructura: estructuraGuardada,
+          timbres: timbresGuardados
         });
       }
     }
@@ -186,42 +199,48 @@ export async function POST(request: NextRequest) {
         nombre: `${direccion.calle} ${direccion.numero}`,
         calle: direccion.calle,
         numero: direccion.numero,
-        ciudad: direccion.ciudad || null,
-        estructura: {
-          create: estructura.map((piso, index) => ({
-            nombre: piso.nombre,
-            dptos: JSON.stringify(piso.dptos.filter(d => d.trim())), // Guardar como JSON string
-            orden: estructura.length - index // Orden inverso para mostrar PB primero
-          }))
-        },
-        timbres: {
-          create: estructura.flatMap(piso => 
-            piso.dptos
-              .filter(dpto => dpto.trim()) // Solo crear timbres para departamentos no vacíos
-              .map(dpto => ({
-                nombre: `${piso.nombre}${dpto}`,
-                piso: piso.nombre,
-                dpto: dpto,
-                numero: null, // Mantener campo para números
-                metodo: 'mensaje',
-                estado: 'activo',
-                esPropio: false,
-                estadoAsignacion: 'libre'
-              }))
-          )
-        }
-      },
-      include: {
-        timbres: true,
-        estructura: {
-          orderBy: { orden: 'desc' }
-        }
+        ciudad: direccion.ciudad || null
       }
     });
+
+    // Crear nueva estructura
+    const estructuraGuardada = await Promise.all(
+      estructura.map(async (piso, index) => {
+        return await prisma.estructura.create({
+          data: {
+            direccionId: direccionCreada.id,
+            nombre: piso.nombre,
+            dptos: JSON.stringify(piso.dptos.filter(d => d.trim())),
+            orden: estructura.length - index
+          }
+        });
+      })
+    );
+    
+    // Crear nuevos timbres
+    const timbresGuardados = await Promise.all(
+      estructura.flatMap(piso => 
+        piso.dptos
+          .filter(dpto => dpto.trim())
+          .map(dpto => ({
+            nombre: `${piso.nombre}${dpto}`,
+            piso: piso.nombre,
+            dpto: dpto,
+            numero: null,
+            metodo: 'mensaje',
+            estado: 'activo',
+            esPropio: false,
+            estadoAsignacion: 'libre',
+            direccionId: direccionCreada.id
+          }))
+      ).map(timbreData => prisma.timbre.create({ data: timbreData }))
+    );
 
     return NextResponse.json({
       success: true,
       direccion: direccionCreada,
+      estructura: estructuraGuardada,
+      timbres: timbresGuardados
     });
 
   } catch (error) {
@@ -231,4 +250,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

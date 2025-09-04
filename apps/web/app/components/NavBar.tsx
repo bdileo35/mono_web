@@ -31,8 +31,10 @@ export default function NavBar() {
       setUserRole(role);
       setUsername(user || "");
     } else {
-      // Si no está logueado, redirigir al login
-      router.push("/login");
+      // TEMPORAL: Comentado para pruebas
+      // router.push("/login");
+      setUserRole("Admin"); // Temporal: asignar rol admin
+      setUsername("admin"); // Temporal: asignar usuario
     }
   }, [router]);
 
@@ -308,5 +310,4 @@ export default function NavBar() {
       )}
     </nav>
   );
-} 
- 
+}

@@ -99,42 +99,51 @@ export default function PanelAdminClient({ idUnico }: PanelAdminClientProps) {
               </h2>
 
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '15px'
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '12px',
+                alignItems: 'center'
               }}>
+                <span style={{
+                  color: '#1a4fa3',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  marginRight: '10px'
+                }}>
+                  {piso.nombre}
+                </span>
                 {piso.timbres?.map((timbre) => (
-                  <div
+                  <button
                     key={timbre.id}
                     onClick={() => handleTimbreClick(timbre)}
                     style={{
-                      padding: '15px',
-                      border: '2px solid #e0e0e0',
-                      borderRadius: '8px',
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '25px',
+                      border: '2px solid #ff8c00',
+                      backgroundColor: timbre.numero ? '#4caf50' : '#fff',
+                      color: timbre.numero ? '#fff' : '#1a4fa3',
                       cursor: 'pointer',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       transition: 'all 0.3s ease',
-                      backgroundColor: timbre.numero ? '#e8f5e8' : '#fff3cd',
-                      borderColor: timbre.numero ? '#28a745' : '#ffc107'
+                      boxShadow: timbre.numero ? '0 2px 8px rgba(76, 175, 80, 0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.02)';
-                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                      e.currentTarget.style.transform = 'scale(1.1)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'scale(1)';
-                      e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.boxShadow = timbre.numero ? '0 2px 8px rgba(76, 175, 80, 0.3)' : '0 2px 4px rgba(0,0,0,0.1)';
                     }}
+                    title={`${timbre.nombre}${timbre.numero ? ` - 📞 ${timbre.numero}` : ' - Sin configurar'}`}
                   >
-                    <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '8px' }}>
-                      {timbre.nombre}
-                    </div>
-                    <div style={{ fontSize: '14px', color: '#666' }}>
-                      {timbre.numero ? `📞 ${timbre.numero}` : '⏳ Sin configurar'}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
-                      {timbre.metodo} • {timbre.estado}
-                    </div>
-                  </div>
+                    {timbre.dpto}
+                  </button>
                 ))}
               </div>
             </div>

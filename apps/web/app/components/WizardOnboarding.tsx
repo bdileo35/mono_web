@@ -151,14 +151,25 @@ export default function WizardOnboarding() {
           
           if (result.success && result.data?.timbres) {
             console.log('✅ Números cargados desde BD:', result.data.timbres);
+            console.log('🔍 Timbres actuales antes de actualizar:', timbres);
+            console.log('🔍 Ejemplos de timbres en BD:', result.data.timbres.slice(0, 3).map(t => ({ nombre: t.nombre, piso: t.piso, dpto: t.dpto, numero: t.numero })));
             
             // Actualizar timbres con números de la BD
             setTimbres(prevTimbres => {
+              console.log('🔄 Actualizando timbres. PrevTimbres:', prevTimbres);
+              
               const timbresActualizados = prevTimbres.map(timbre => {
-                const timbreBD = result.data.timbres.find((t: any) => 
-                  t.nombre === timbre.id || 
-                  `${t.piso}${t.dpto}` === timbre.id
-                );
+                // 🔧 CRÍTICO: Buscar por múltiples criterios
+                const timbreBD = result.data.timbres.find((t: any) => {
+                  const match1 = t.nombre === timbre.id;
+                  const match2 = `${t.piso}${t.dpto}` === timbre.id;
+                  const match3 = `${timbre.piso}${timbre.dpto}` === t.nombre;
+                  const match4 = t.nombre === `${timbre.piso}${timbre.dpto}`;
+                  
+                  return match1 || match2 || match3 || match4;
+                });
+                
+                console.log(`🔍 Buscando timbre ${timbre.id} (${timbre.piso}${timbre.dpto}):`, timbreBD);
                 
                 if (timbreBD && timbreBD.numero) {
                   console.log(`✅ Actualizando timbre ${timbre.id} con número: ${timbreBD.numero}`);
@@ -168,11 +179,21 @@ export default function WizardOnboarding() {
                     metodo: timbreBD.metodo || timbre.metodo,
                     estadoAsignacion: 'configurado'
                   };
+                } else if (timbreBD) {
+                  // Si existe en BD pero no tiene número, mantener estado
+                  console.log(`✅ Timbre ${timbre.id} existe en BD pero sin número`);
+                  return {
+                    ...timbre,
+                    numero: timbreBD.numero || '',
+                    metodo: timbreBD.metodo || timbre.metodo,
+                    estadoAsignacion: timbreBD.estadoAsignacion || 'libre'
+                  };
                 }
                 return timbre;
               });
               
               console.log('✅ Timbres actualizados con números de BD:', timbresActualizados);
+              console.log('🔍 Timbres configurados:', timbresActualizados.filter(t => t.estadoAsignacion === 'configurado'));
               return timbresActualizados;
             });
           } else {
@@ -190,9 +211,11 @@ export default function WizardOnboarding() {
     cargarDatos();
   }, []); // El array vacío asegura que se ejecute solo una vez
 
-  // 2. Sincronizar 'timbres' con 'estructura'
+  // 2. Sincronizar 'timbres' con 'estructura' - SOLO SI NO HAY TIMBRES CARGADOS
   useEffect(() => {
-    if (isInitialMount.current && timbres.length > 0) {
+    // 🔧 CRÍTICO: NO regenerar timbres si ya están cargados desde la BD
+    if (timbres.length > 0) {
+      console.log('✅ Timbres ya cargados, no regenerando desde estructura');
       return;
     }
 
@@ -213,6 +236,7 @@ export default function WizardOnboarding() {
       })
     );
 
+    console.log('🔄 Generando timbres desde estructura:', timbresDesdeEstructura.length);
     setTimbres(timbresDesdeEstructura);
   }, [estructura]);
 
@@ -238,7 +262,9 @@ export default function WizardOnboarding() {
       return; // Salimos para no re-generar encima de los datos cargados.
     }
 
-    // A partir del segundo render, cualquier cambio en los controles regenera la grilla.
+    // 🔧 CRÍTICO: Regenerar estructura cuando cambian los controles
+    console.log('🔄 Regenerando estructura con:', { cantPisos, dptosPorPiso, tienePB, pbDptosCount });
+    
     const pisos: PisoConfig[] = [];
     for (let i = cantPisos; i >= 1; i--) {
       const dptos = Array.from({ length: dptosPorPiso }, (_, j) => String.fromCharCode(65 + j));
@@ -248,6 +274,8 @@ export default function WizardOnboarding() {
       const pbDptos = Array.from({ length: pbDptosCount }, (_, j) => String.fromCharCode(65 + j));
       pisos.push({ nombre: "PB", dptos: pbDptos });
     }
+    
+    console.log('✅ Estructura regenerada:', pisos);
     setEstructura(pisos);
   }, [cantPisos, dptosPorPiso, tienePB, pbDptosCount]);
 
@@ -329,7 +357,7 @@ export default function WizardOnboarding() {
     const direccion = { calle, numero };
     const estructuraFinal = estructura.map(piso => ({
       ...piso,
-      dptos: piso.dptos.filter(d => d.trim() !== '')
+      dptos: piso.dptos.filter(d => d && d.trim() !== '' && d !== 'X')
     }));
     
       // 🔧 CRÍTICO: Enviar el idUnico existente al endpoint
@@ -353,10 +381,10 @@ export default function WizardOnboarding() {
         console.log("✅ Manteniendo idUnico original:", idUnico);
         
         // Actualizar el estado local con el ID real
-    setEstructura(estructuraFinal);
-    
+        setEstructura(estructuraFinal);
+        
         // Avanzar al siguiente paso
-    siguiente();
+        siguiente();
       } else {
         console.error("Error al guardar estructura:", result.error);
         alert(`Error al guardar: ${result.error}`);
@@ -377,13 +405,20 @@ export default function WizardOnboarding() {
         return false;
       }
 
-      // Filtrar solo timbres configurados
+      console.log('🔍 VALIDACIÓN FINALIZAR - Timbres totales:', timbres);
+      console.log('🔍 VALIDACIÓN FINALIZAR - Estados de asignación:', timbres.map(t => ({ id: t.id, estado: t.estadoAsignacion, numero: t.numero })));
+      
+      // Filtrar solo timbres configurados (con número asignado)
       const timbresConfigurados = timbres.filter(t => 
-        t.estadoAsignacion === 'configurado' || 
-        t.estadoAsignacion === 'asignado'
+        (t.estadoAsignacion === 'configurado' || 
+         t.estadoAsignacion === 'asignado' ||
+         (t.numero && t.numero.trim() !== ''))
       );
 
+      console.log('🔍 VALIDACIÓN FINALIZAR - Timbres configurados:', timbresConfigurados);
+
       if (timbresConfigurados.length === 0) {
+        console.log('❌ VALIDACIÓN FINALIZAR - No hay timbres configurados');
         alert("Debes configurar al menos un timbre antes de finalizar");
         return false;
       }
@@ -956,7 +991,7 @@ export default function WizardOnboarding() {
                 onClick={() => {
                   setShowPaso3Confirm(false);
                   if (typeof window !== 'undefined') {
-                    window.location.href = '/inicio';
+                    window.location.href = `/inicio`;
                   }
                 }} 
                 style={{ 

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { MdMessage, MdCall, MdVideocam } from "react-icons/md";
+import { formatearNumeroWhatsApp } from '../utils/whatsappFormatter';
 
 export interface PisoConfig {
   nombre: string;
@@ -216,15 +217,18 @@ export default function ConfigTimbres({ estructura, timbres, onChange, maxDptos 
         break;
     }
 
+    // Formatear el número correctamente para WhatsApp
+    const numeroFormateado = formatearNumeroWhatsApp(numero);
+    
     switch (metodo) {
       case 'mensaje':
-        url = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
+        url = `https://wa.me/${numeroFormateado}?text=${encodeURIComponent(mensaje)}`;
         break;
       case 'llamada':
-        url = `https://wa.me/${numero}`;
+        url = `https://wa.me/${numeroFormateado}`;
         break;
       case 'video':
-        url = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje + ' ¿Podemos hacer una videollamada?')}`;
+        url = `https://wa.me/${numeroFormateado}?text=${encodeURIComponent(mensaje + ' ¿Podemos hacer una videollamada?')}`;
         break;
     }
 
@@ -234,8 +238,8 @@ export default function ConfigTimbres({ estructura, timbres, onChange, maxDptos 
   return (
     <>
       {/* Filas de timbres */}
-      {estructura.map((piso) => (
-        <React.Fragment key={piso.nombre}>
+      {estructura.map((piso, index) => (
+        <React.Fragment key={`${piso.nombre}-${index}`}>
           <div style={{ fontWeight: 700, color: '#1a4fa3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{piso.nombre}</div>
           {Array.from({ length: maxDptos }, (_, colIndex) => {
             const letraColumna = String.fromCharCode(65 + colIndex);

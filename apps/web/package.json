@@ -1,18 +1,20 @@
 {
-  "name": "web",
-  "version": "0.1.0",
+  "name": "qring-web",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",
     "html-to-image": "^1.11.13",
     "next": "15.3.2",
-    "ngrok": "^5.0.0-beta.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0"
@@ -21,9 +23,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "prisma": "^6.10.1",
     "typescript": "^5"
-  },
-  "prisma": {
-    "schema": "../../prisma/schema.prisma"
   }
 }

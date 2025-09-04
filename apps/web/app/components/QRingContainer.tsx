@@ -1,7 +1,8 @@
-"use client";
+"u         se client";
 import { useState, useEffect } from "react";
 import QRCodeDisplay from './QRCodeDisplay';
 import { MdLocationCity, MdPerson } from "react-icons/md";
+import { formatearNumeroWhatsApp } from '../utils/whatsappFormatter';
 
 interface PisoConfig {
   nombre: string;
@@ -46,6 +47,8 @@ export default function QRingContainer({
   const [pisoSel, setPisoSel] = useState<string | number | null>(null);
   const [dptoSel, setDptoSel] = useState<string | null>(null);
   const [showRing, setShowRing] = useState(false);
+  const [showModalIDU, setShowModalIDU] = useState(false);
+  const [inputIDU, setInputIDU] = useState('');
 
   // Derivar listas de pisos y dptos de la estructura
   const pisosConfig = estructura?.map((piso: PisoConfig) => piso.nombre) || [];
@@ -57,6 +60,8 @@ export default function QRingContainer({
     const timbre = timbres.find(t => t.piso === piso && t.dpto === dpto);
     return timbre && (timbre.estadoAsignacion === 'configurado' || timbre.estadoAsignacion === 'asignado');
   };
+
+
 
   // Función para obtener el estilo de un botón según su estado
   const getButtonStyle = (isSelected: boolean, isConfigurado: boolean) => {
@@ -135,15 +140,29 @@ export default function QRingContainer({
         const mensaje = encodeURIComponent(`Hola, estoy en la puerta de ${calle} ${numero}, timbre ${pisoSel}${dptoSel}.`);
         
         if (timbreConfigurado.metodo === 'mensaje' || timbreConfigurado.metodo === 'video') {
-          // Abrir WhatsApp directamente
-          window.open(`whatsapp://send?phone=${timbreConfigurado.numero}&text=${mensaje}`, '_blank');
+          // Abrir WhatsApp directamente con número formateado
+          const numeroFormateado = formatearNumeroWhatsApp(timbreConfigurado.numero);
+          window.open(`whatsapp://send?phone=${numeroFormateado}&text=${mensaje}`, '_blank');
         } else if (timbreConfigurado.metodo === 'llamada') {
-          // Abrir llamada directamente
-          window.open(`tel:${timbreConfigurado.numero}`, '_blank');
+          // Abrir llamada directamente con número formateado
+          const numeroFormateado = formatearNumeroWhatsApp(timbreConfigurado.numero);
+          window.open(`tel:${numeroFormateado}`, '_blank');
         }
       }
       setShowRing(false);
     }, 2500);
+  };
+
+  const handleUsuariosClick = () => {
+    setShowModalIDU(true);
+  };
+
+  const handleIrAlPanel = () => {
+    if (inputIDU.trim()) {
+      window.open(`/admin/wizard-estructura?idUnico=${inputIDU.trim()}`, '_blank');
+      setShowModalIDU(false);
+      setInputIDU('');
+    }
   };
 
   const isButtonDisabled = !pisoSel || !dptoSel;
@@ -205,7 +224,7 @@ export default function QRingContainer({
         
         {/* QR Display */}
         <div style={{ padding: 6, border: '2px solid #e0e3ea', borderRadius: 16, marginBottom: 8 }}>
-          <QRCodeDisplay value={`http://localhost:3000/acceso/${idUnico}`} />
+          <QRCodeDisplay value={`http://localhost:3000/`} />
         </div>
 
         {/* Contenedor de Selección (Piso/Dpto) */}
@@ -292,11 +311,107 @@ export default function QRingContainer({
           </button>
           <button
             style={{ flex: 1, background: '#e0e3ea', color: '#1a4fa3', border: '1px solid #bfc5d2', borderRadius: 12, padding: '12px 8px', fontSize: 16, fontWeight: 700, lineHeight: '1.2', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
-            onClick={onUsuariosClick}
+            onClick={handleUsuariosClick}
           >
             <MdPerson style={{ fontSize: 24, marginBottom: 2 }} />
             Usuarios/<br/>Residentes
           </button>
+        </div>
+      )}
+
+      {/* Modal para ingresar IDU */}
+      {showModalIDU && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(30,40,60,0.18)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 24,
+            boxShadow: '0 8px 32px #0003',
+            padding: '32px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            minWidth: 320,
+            maxWidth: 400,
+            animation: 'pop 0.3s',
+          }}>
+            <span style={{ fontSize: 48, color: '#1a4fa3', marginBottom: 16 }}>🔐</span>
+            <h3 style={{ color: '#1a4fa3', fontWeight: 800, fontSize: 20, marginBottom: 8, textAlign: 'center' }}>
+              Acceso Administrativo
+            </h3>
+            <p style={{ color: '#666', fontSize: 14, textAlign: 'center', marginBottom: 24, lineHeight: 1.4 }}>
+              Ingresa el IDU del edificio para acceder al panel de administración
+            </p>
+            
+            <input
+              type="text"
+              placeholder="Ej: C1C0VELR"
+              value={inputIDU}
+              onChange={(e) => setInputIDU(e.target.value.toUpperCase())}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '2px solid #e0e3ea',
+                borderRadius: 12,
+                fontSize: 16,
+                fontWeight: 600,
+                textAlign: 'center',
+                letterSpacing: 1,
+                marginBottom: 20,
+                outline: 'none',
+                transition: 'border-color 0.2s'
+              }}
+              onKeyPress={(e) => e.key === 'Enter' && handleIrAlPanel()}
+            />
+            
+            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+              <button
+                onClick={() => {
+                  setShowModalIDU(false);
+                  setInputIDU('');
+                }}
+                style={{
+                  flex: 1,
+                  background: '#f0f0f0',
+                  color: '#666',
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '12px 16px',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleIrAlPanel}
+                disabled={!inputIDU.trim()}
+                style={{
+                  flex: 1,
+                  background: !inputIDU.trim() ? '#ccc' : '#1a4fa3',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '12px 16px',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  cursor: !inputIDU.trim() ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.2s'
+                }}
+              >
+                Ir al Panel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>
